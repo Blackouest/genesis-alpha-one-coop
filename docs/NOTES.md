@@ -147,3 +147,13 @@
 ### Conclusion so far
 - The v6 kick was **not** caused by a name mismatch (or names were already matching then too). Cause still unknown.
 - Instance numbering is deterministic per process (a global counter), which a real mod can rely on or line up.
+
+## Phase 3j: guest stays connected with the ship loaded but invisible (2026-10-25 14:05)
+### Observations (guest F7 after F4 import)
+- Still `CLIENT (connected to a server)`, possesses its pawn, StreamingLevels 31 (names identical to host).
+- No `ServerUpdateLevelVisibility` call after the import (its only 31 calls are from its own single-player load before joining) -> the imported levels never became visible.
+- `LoadingScreen_Widget_C` x2 on the guest, one with visibility 0 (Visible): this is the endless loading screen.
+- Guest's own pawn at 42,-155,319 vs host's view of it at 43,-310,98 (position not converged).
+### Next (probe v8)
+- F3 (guest): log IsLevelLoaded/IsLevelVisible/ShouldBeLoaded, call SetShouldBeLoaded/SetShouldBeVisible(true) on every level, collapse and remove LoadingScreen_Widget_C.
+- Ask owner whether the host's black screen clears when window 1 gets focus back (unfocused render?).
