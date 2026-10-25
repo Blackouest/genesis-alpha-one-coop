@@ -87,6 +87,7 @@ end
 RegisterKeyBind(Key.F9, function()
   if ROLE == "client" then log("F9 ignored: this window is the client"); return end
   ROLE = "host"
+  if package.loaded["hooks"] then package.loaded["hooks"].armed = true end
   ExecuteInGameThread(function()
     local pc = FindFirstOf("PlayerController")
     if not (pc and pc:IsValid()) then log("no PC"); return end
@@ -100,6 +101,7 @@ end)
 RegisterKeyBind(Key.F8, function()
   if ROLE == "host" then log("F8 ignored: this window is the host"); return end
   ROLE = "client"
+  if package.loaded["hooks"] then package.loaded["hooks"].armed = true end
   ExecuteInGameThread(function()
     local addr = "127.0.0.1"
     local f = io.open("Mods/CoopProbe/host.txt", "r")
@@ -122,6 +124,7 @@ RegisterKeyBind(Key.F4, function()
 end)
 local hooks = require("hooks")
 hooks.install(log)
+hooks.install_watchers(log)
 local reveal = require("reveal")
 RegisterKeyBind(Key.F3, function()
   if ROLE ~= "client" then return end
@@ -130,7 +133,7 @@ end)
 local render = require("render")
 RegisterKeyBind(Key.F2, function() ExecuteInGameThread(function() render.dump(log) end) end)
 RegisterKeyBind(Key.F1, function() ExecuteInGameThread(function() render.fix(log) end) end)
-log("loaded v12: hooks on console commands, fades, cinematic mode, view targets, widgets, pause, settings")
+log("loaded v13: safe watchers (BeginPlay, new widgets, console exec) armed on F9/F8; v12 native hooks removed (crash)")
 log("loaded v9: F2 = render dump (MPC, camera, post-process)")
 log("loaded v8: F3 (client) = force ship levels visible + hide loading screen")
 log("loaded v7b: names logged, RPC hooks")

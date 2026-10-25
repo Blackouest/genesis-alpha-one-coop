@@ -208,3 +208,15 @@
 - Camera fade, world rendering switch, post-process overlay, loading screen widget, wrong view target.
 ### Next (probe v12)
 - Log what the game does when the guest arrives: KismetSystemLibrary.ExecuteConsoleCommand, PlayerController.ConsoleCommand, StartCameraFade, ClientSetCameraFade, (Client)SetCinematicMode, SetViewTargetWithBlend, ClientSetViewTarget, SetGamePaused, GameUserSettings.ApplySettings/SetScreenResolution, UserWidget.AddToViewport.
+
+## Phase 3p: probe v12 crashed the game (2026-10-25 14:51)
+### Observations
+- With v12, the game crashed on reaching the main menu. UE4SS console: "Tried to execute UFunction::FuncPtr hook but there was no function map entry for UFunction: 0000000000000000 None. No original function to execute. Executing ProcessInternal instead.", then Object_ExecuteUbergraph / ProcessInternal.
+- Last logged calls before it: AddToViewport StartGame_C (z=1), AddToViewport LoginFailedWidget_C (z=15). The test copy started outside the Epic launcher shows a login-failed widget.
+- UE4SS reported "Registered native hook" for the new engine functions (e.g. GameUserSettings.ApplySettings/SetScreenResolution, UserWidget.AddToViewport) and "script hook" for K2_OnLogout.
+### Derived (unverified)
+- One of the new native hooks patched an exec thunk that MSVC identical-code-folding shares with another UFunction; when that other function ran, UE4SS found no map entry and crashed. Which hook: unknown.
+### Lesson for the playbook (UE4SS 3.0.1 on shipping UE4 builds)
+- Prefer RegisterBeginPlayPostHook / NotifyOnNewObject / RegisterProcessConsoleExecPreHook and script (BP) hooks over many native RegisterHook calls; add native hooks one at a time.
+### Next (probe v13)
+- Back to the v10 hook set (ran without crash) plus safe watchers, armed on F9/F8: every actor BeginPlay (class + name), every new UserWidget, every console command.

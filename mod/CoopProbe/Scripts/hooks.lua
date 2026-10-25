@@ -1,6 +1,5 @@
 -- Log level-visibility RPCs (host side) and kick / return-to-menu reasons (client side)
 local M = {}
-local function who(p) local ok, v = pcall(function() local o = p:get(); return o:GetFName():ToString() end); return ok and v or "?" end
 local function str(p) local ok, v = pcall(function() local x = p:get(); if type(x) == "userdata" and x.ToString then return x:ToString() end; return tostring(x) end); return ok and v or "?" end
 function M.install(log)
   local hooks = {
@@ -11,18 +10,6 @@ function M.install(log)
     { "/Script/Engine.PlayerController:ClientUpdateLevelStreamingStatus", function(self, pkg, load, vis) log("RPC ClientUpdateLevelStreamingStatus pkg=" .. str(pkg) .. " load=" .. str(load) .. " vis=" .. str(vis)) end },
     { "/Script/Engine.GameplayStatics:SetEnableWorldRendering", function(self, ctx, enable) log("CALL SetEnableWorldRendering enable=" .. str(enable) .. " ctx=" .. str(ctx)) end },
     { "/Script/Engine.GameModeBase:K2_PostLogin", function(self, pc) log("GameMode PostLogin " .. str(pc)) end },
-    { "/Script/Engine.KismetSystemLibrary:ExecuteConsoleCommand", function(self, ctx, cmd) log("CALL ExecuteConsoleCommand '" .. str(cmd) .. "'") end },
-    { "/Script/Engine.PlayerController:ConsoleCommand", function(self, cmd) log("CALL PC.ConsoleCommand '" .. str(cmd) .. "' on " .. who(self)) end },
-    { "/Script/Engine.PlayerCameraManager:StartCameraFade", function(self, from, to, dur) log("CALL StartCameraFade " .. str(from) .. "->" .. str(to) .. " dur=" .. str(dur) .. " on " .. who(self)) end },
-    { "/Script/Engine.PlayerController:ClientSetCameraFade", function(self, enable) log("RPC ClientSetCameraFade enable=" .. str(enable) .. " on " .. who(self)) end },
-    { "/Script/Engine.PlayerController:SetCinematicMode", function(self, on) log("CALL SetCinematicMode " .. str(on) .. " on " .. who(self)) end },
-    { "/Script/Engine.PlayerController:ClientSetCinematicMode", function(self, on) log("RPC ClientSetCinematicMode " .. str(on) .. " on " .. who(self)) end },
-    { "/Script/Engine.PlayerController:SetViewTargetWithBlend", function(self, t) log("CALL SetViewTargetWithBlend " .. str(t) .. " on " .. who(self)) end },
-    { "/Script/Engine.PlayerController:ClientSetViewTarget", function(self, t) log("RPC ClientSetViewTarget " .. str(t) .. " on " .. who(self)) end },
-    { "/Script/Engine.GameplayStatics:SetGamePaused", function(self, ctx, p) log("CALL SetGamePaused " .. str(p)) end },
-    { "/Script/Engine.GameUserSettings:ApplySettings", function(self) log("CALL GameUserSettings.ApplySettings") end },
-    { "/Script/Engine.GameUserSettings:SetScreenResolution", function(self, r) log("CALL SetScreenResolution") end },
-    { "/Script/UMG.UserWidget:AddToViewport", function(self, z) log("CALL AddToViewport " .. who(self) .. " z=" .. str(z)) end },
     { "/Script/Engine.GameModeBase:K2_OnLogout", function(self, ctrl) log("GameMode Logout " .. str(ctrl)) end },
   }
   for _, h in ipairs(hooks) do
@@ -31,3 +18,31 @@ function M.install(log)
   end
 end
 return M
+
+-- v13: safe watchers (no native UFunction hooks). Armed by F9/F8 so the startup load is not logged.
+M.armed = false
+local function cls(o) local ok, v = pcall(function() return o:GetClass():GetFName():ToString() end); return ok and v or "?" end
+local function nm(o) local ok, v = pcall(function() return o:GetFName():ToString() end); return ok and v or "?" end
+function M.install_watchers(log)
+  local ok1 = pcall(function()
+    RegisterBeginPlayPostHook(function(actor)
+      if not M.armed then return end
+      local a = actor
+      if type(actor) == "userdata" and actor.get then local okg, v = pcall(function() return actor:get() end); if okg then a = v end end
+      log("BEGINPLAY " .. cls(a) .. " " .. nm(a))
+    end)
+  end)
+  log("watcher BeginPlay -> " .. tostring(ok1))
+  local ok2 = pcall(function()
+    NotifyOnNewObject("/Script/UMG.UserWidget", function(w)
+      if M.armed then log("NEW WIDGET " .. cls(w) .. " " .. nm(w)) end
+    end)
+  end)
+  log("watcher new UserWidget -> " .. tostring(ok2))
+  local ok3 = pcall(function()
+    RegisterProcessConsoleExecPreHook(function(ctx, cmd)
+      if M.armed then local okc, c = pcall(function() return cmd:get():ToString() end); log("CONSOLE " .. (okc and c or tostring(cmd))) end
+    end)
+  end)
+  log("watcher console exec -> " .. tostring(ok3))
+end
