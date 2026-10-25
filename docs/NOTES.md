@@ -356,3 +356,14 @@
 - The guest's pawn on the host never got its loadout: our init copied flags only; the game's `InitWeaponsFromSave` never ran for it.
 ### Next (probe v22)
 - F2: per player character, dump weapon/inventory/equipment/builder/tool/slot/item/flashlight/hud/oxygen properties (values, object names, array sizes). F2 again on the host: call `InitWeaponsFromSave` on the guest's character and dump again.
+
+## Phase 4d: the guest has no weapons, and shares the host's HUD (2026-10-25 18:39, probe v22)
+### Observations (host side, before and after forwarding the guest's weapon keys)
+- Host's own pawn: WeaponSlot1=BP_WeaponPistol_C, WeaponSlot2=BP_WeaponPowerShotgun_C, NoWeapon=BP_NoWeapon_C, Multitool=BP_Weapon_Multikit_C, CurrentWeaponInUse=BP_NoWeapon_C.
+- Host's copy of the guest: **WeaponSlot1/2, NoWeapon, Multitool, CurrentWeaponInUse all none**. It has its own BuilderCharacterOwner and PlayerInventoryAvatar.
+- **Both pawns point at the same `PlayerHud` (PlayerHudWidget_C_2147482146)**, the host's HUD. On the guest, both pawns also point at the guest's one HUD. So any Blueprint path through `PlayerHud` acts on the local player's HUD.
+- Calling `InitWeaponsFromSave` on the guest's pawn on the host did not give it weapons (slots still none); the pcall result printed as a function value, so the call itself may have failed: unknown.
+- After the guest's forwarded `PC_SelectWeapon_1/2` and `PC_EquipSentryGun`, the **host's** pawn changed (CurrentWeaponInUse Pistol, IsWeaponEquiped true, CurrentInventorySlot 1, LastSelectedSlot 2) while the guest's stayed empty. Whether the owner also pressed keys in the host window at that time: unknown, but the pattern matches player-0 / shared-HUD routing.
+### Derived
+- Weapons for the guest must exist on the host: spawn the four weapon actors for the guest (same classes) owned by its pawn, or make the game's init run with the guest as "player 0".
+- Forwarded actions need an impersonation window: while the host runs a guest action, player-0 lookups (and the HUD reference) must resolve to the guest.
