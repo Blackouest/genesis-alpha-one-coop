@@ -8,6 +8,8 @@ function M.install(log)
     { "/Script/Engine.PlayerController:ClientReturnToMainMenu", function(self, reason) log("RPC ClientReturnToMainMenu reason=" .. str(reason)) end },
     { "/Script/Engine.PlayerController:ClientReturnToMainMenuWithTextReason", function(self, reason) log("RPC ClientReturnToMainMenuWithTextReason reason=" .. str(reason)) end },
     { "/Script/Engine.PlayerController:ClientUpdateLevelStreamingStatus", function(self, pkg, load, vis) log("RPC ClientUpdateLevelStreamingStatus pkg=" .. str(pkg) .. " load=" .. str(load) .. " vis=" .. str(vis)) end },
+    { "/Script/Engine.GameplayStatics:SetEnableWorldRendering", function(self, ctx, enable) log("CALL SetEnableWorldRendering enable=" .. str(enable) .. " ctx=" .. str(ctx)) end },
+    { "/Script/Engine.GameModeBase:K2_PostLogin", function(self, pc) log("GameMode PostLogin " .. str(pc)) end },
     { "/Script/Engine.GameModeBase:K2_OnLogout", function(self, ctrl) log("GameMode Logout " .. str(ctrl)) end },
   }
   for _, h in ipairs(hooks) do

@@ -177,3 +177,14 @@
 - Pawn camera deactivated, or a post-process volume / camera post-process blackout.
 ### Next (probe v9)
 - F2 render dump: every MaterialParameterCollection with current vs default scalar values (KismetMaterialLibrary.GetScalarParameterValue), pawn CameraComponent active state and post-process weight, camera location, PostProcessVolumes, pawn bHidden, PlayerHudWidget visibility/opacity.
+
+## Phase 3m: full black, no UI at all (2026-10-25 14:35, probe v9)
+### Observations
+- Owner screenshot: both game windows are completely black, nothing drawn at all.
+- F2 render dump (both windows): camera at the own pawn's eye height (host -190,373,178; guest 42,-155,399), pawn not hidden, PlayerHudWidget visibility 4 (SelfHitTestInvisible), opacity 1. No MaterialParameterCollection, pawn CameraComponent or PostProcessVolume was listed (FindAllOf returned none, or the loops failed silently: unknown).
+- Exe strings include `SetEnableWorldRendering` / `GetEnableWorldRendering` (UGameplayStatics) and `SetSuppressViewportTransitionMessage`.
+### Hypothesis
+- The game's load flow calls `UGameplayStatics::SetEnableWorldRendering(false)` while it builds the ship, and the arriving guest re-triggers it on the host (GameMode PostLogin) and on the guest; it never gets re-enabled because the load never "finishes" for two players.
+### Next (probe v10)
+- F2 also logs GetEnableWorldRendering. F1 calls SetEnableWorldRendering(true) on the local window.
+- Hooks: GameplayStatics.SetEnableWorldRendering (who switches it, with what value), GameModeBase.K2_PostLogin.

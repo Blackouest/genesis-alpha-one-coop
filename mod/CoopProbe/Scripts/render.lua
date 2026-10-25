@@ -52,6 +52,22 @@ function M.dump(log)
   for _, w in ipairs(FindAllOf("PlayerHudWidget_C") or {}) do
     if w:IsValid() then log("PlayerHudWidget " .. short(w) .. " vis=" .. tostring(safe(function() return w:GetVisibility() end, "?")) .. " opacity=" .. num(safe(function() return w:GetRenderOpacity() end, "?"))) end
   end
+  local gs = StaticFindObject("/Script/Engine.Default__GameplayStatics")
+  log("GetEnableWorldRendering = " .. tostring(safe(function() return gs:GetEnableWorldRendering(pc) end, "?")))
   log("---- end render ----")
+end
+
+-- F1: turn world rendering back on for this window
+function M.fix(log)
+  local pc
+  for _, x in ipairs(FindAllOf("PlayerController") or {}) do
+    if x:IsValid() and safe(function() return x:IsLocalController() end, false) then pc = x end
+  end
+  if not pc then log("fix: no local PC"); return end
+  local gs = StaticFindObject("/Script/Engine.Default__GameplayStatics")
+  local before = safe(function() return gs:GetEnableWorldRendering(pc) end, "?")
+  local ok, err = pcall(function() gs:SetEnableWorldRendering(pc, true) end)
+  local after = safe(function() return gs:GetEnableWorldRendering(pc) end, "?")
+  log("fix: world rendering " .. tostring(before) .. " -> " .. tostring(after) .. (ok and "" or (" error " .. tostring(err))))
 end
 return M
