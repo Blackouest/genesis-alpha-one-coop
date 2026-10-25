@@ -197,3 +197,14 @@
 - The frame is rendered but covered: a post-process blendable (helmet/visor, death/clone effect) on the pawn camera or the camera manager, or exposure.
 ### Next (probe v11)
 - F1: `ShowFlag.PostProcessing 0`, `r.DefaultFeature.AutoExposure 0`, `r.TonemapperFilm 0`, list every CameraComponent (owner, active, PostProcessBlendWeight, blendable count) and set their weights to 0.
+
+## Phase 3o: not post-processing either (2026-10-25 14:45, probe v11)
+### Observations
+- Solo control test (host only, F9 then F1): the image gets brighter, so the F1 console commands do reach the renderer in this build.
+- Two-player test: F1 changes nothing on either window; both stay fully black.
+- Camera components found: pawn `FirstPersonCamera` (active), `BuilderCharacter_C` camera, `BP_PlayerRemoteCamera_C` (host only), `CameraActor`s (one on host, two on guest), three inactive `CineCameraActor`s, and many terminal/workstation screen cameras (BP_StorageTerminal, BP_GreenhouseTerminal2, BP_HealthStation, BP_GalaxyTerminal, BP_TractorBeamTerminal, BP_RefineryTerminal, StandKeyboardWorkstationPlayer...). None has post-process blendables.
+- PlayerCameraManager view target stays the own pawn on both sides (earlier dumps).
+### Ruled out
+- Camera fade, world rendering switch, post-process overlay, loading screen widget, wrong view target.
+### Next (probe v12)
+- Log what the game does when the guest arrives: KismetSystemLibrary.ExecuteConsoleCommand, PlayerController.ConsoleCommand, StartCameraFade, ClientSetCameraFade, (Client)SetCinematicMode, SetViewTargetWithBlend, ClientSetViewTarget, SetGamePaused, GameUserSettings.ApplySettings/SetScreenResolution, UserWidget.AddToViewport.
