@@ -240,3 +240,13 @@
 - Destroying the guest's BP_PlayerRemoteCamera_C, then its BuilderCharacter_C (host F1 x2+) did not bring the host image back.
 ### Next (probe v15)
 - F1 in both windows: engine screenshots (`shot`, `HighResShot 1`) to tell "the frame is rendered black" from "the frame is fine but not presented".
+
+## Phase 3s: the engine still renders the ship while the window is black (2026-10-25 15:18, probe v15)
+### Observations
+- F1 in both black windows: `HighResShot 1` wrote one file, `HighresScreenshot00000.png`, 1234x694: a normal, lit view of a ship corridor door with the crosshair. Both windows wrote the same name, so which window it came from is unknown.
+- `shot` (the back-buffer screenshot) wrote no `ScreenShot*.png` at all.
+### Derived (unverified)
+- The scene renders; what fails is presenting the game viewport to the window (viewport draw/present stopped, or something drawn over it at the Slate level, e.g. an engine MoviePlayer loading screen).
+- If `shot` also writes nothing in a solo session, its absence means nothing; if it does write in solo, the viewport is not being drawn during the black screen.
+### Next (probe v15b)
+- F1: host shoots now, client 4 s later (different file numbers). Owner runs a solo control first.
