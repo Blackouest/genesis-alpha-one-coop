@@ -157,3 +157,13 @@
 ### Next (probe v8)
 - F3 (guest): log IsLevelLoaded/IsLevelVisible/ShouldBeLoaded, call SetShouldBeLoaded/SetShouldBeVisible(true) on every level, collapse and remove LoadingScreen_Widget_C.
 - Ask owner whether the host's black screen clears when window 1 gets focus back (unfocused render?).
+
+## Phase 3k: ship visible on the guest, both screens black (2026-10-25 14:10, probe v8)
+### Observations
+- Guest after F4 import: its streaming levels are loaded, visible and ShouldBeLoaded (31/31 visible before F3 forced anything; the v7b "no visibility RPC" was only because the hook does not log it in that case or it came later, unknown).
+- F3 collapsed and removed both `LoadingScreen_Widget_C` (visibility 2 and 0). The guest window then shows **black** instead of the loading screen. Host window stays black, focus does not change it.
+- Guest still connected, local PC possesses its pawn.
+### Derived
+- The black on both sides is the same thing and sits under the loading screen. Likely a camera fade, as F6 used `StopCameraFade`, which in UE 4.23 sets FadeAmount to the fade *target* (FadeAlpha.Y), so it cannot clear a fade to black.
+### Next (probe v8b)
+- F6 now calls `PlayerCameraManager:SetManualCameraFade(0, black, false)` on the local controller of each window.

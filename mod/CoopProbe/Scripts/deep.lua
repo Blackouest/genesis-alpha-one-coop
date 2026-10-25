@@ -63,7 +63,11 @@ function M.recover(log)
   for _, pc in ipairs(FindAllOf("PlayerController") or {}) do
     if pc:IsValid() and safe(function() return pc:IsLocalController() end, false) then
       local cm = pc.PlayerCameraManager
-      if cm and cm:IsValid() then safe(function() cm:StopCameraFade() end); log("StopCameraFade on " .. short(pc)) end
+      if cm and cm:IsValid() then
+        -- StopCameraFade in 4.23 jumps to the fade TARGET (black). Force the fade amount to 0 instead.
+        local ok1, e1 = pcall(function() cm:SetManualCameraFade(0.0, { R = 0.0, G = 0.0, B = 0.0, A = 1.0 }, false) end)
+        log("SetManualCameraFade(0) on " .. short(pc) .. " -> " .. (ok1 and "ok" or tostring(e1)))
+      end
       local p = pc.Pawn
       if p and p:IsValid() then safe(function() pc:SetViewTargetWithBlend(p, 0.0, 0, 0.0, false) end); log("ViewTarget -> " .. short(p)) end
     end
