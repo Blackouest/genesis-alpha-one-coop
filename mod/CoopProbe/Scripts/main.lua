@@ -87,6 +87,7 @@ end
 RegisterKeyBind(Key.F9, function()
   if ROLE == "client" then log("F9 ignored: this window is the client"); return end
   ROLE = "host"
+  _G.COOP_ROLE = "host"
   if not AUTO_STARTED and package.loaded["auto"] then AUTO_STARTED = true; package.loaded["auto"].start_host(log, package.loaded["levels"]) end
   if package.loaded["hooks"] then package.loaded["hooks"].armed = true end
   ExecuteInGameThread(function()
@@ -102,6 +103,7 @@ end)
 RegisterKeyBind(Key.F8, function()
   if ROLE == "host" then log("F8 ignored: this window is the host"); return end
   ROLE = "client"
+  _G.COOP_ROLE = "client"
   if not AUTO_STARTED and package.loaded["auto"] then AUTO_STARTED = true; package.loaded["auto"].start_client(log, package.loaded["levels"], package.loaded["reveal"]) end
   if package.loaded["hooks"] then package.loaded["hooks"].armed = true end
   ExecuteInGameThread(function()
@@ -151,6 +153,7 @@ RegisterKeyBind(Key.F6, function()
     if ROLE == "client" then channel.to_host(log, "ping " .. os.date("%H:%M:%S")) end
   end)
 end)
+log("loaded v21: guest actions forwarded to the host (act|<InpActEvt>), action hooks auto-installed")
 log("loaded v20: auto init, F6 = hook input actions + guest pings host")
 log("loaded v19: F2 = player init dump, F2 again = initialize uninitialized player characters")
 log("loaded v18: F2 = guest input/movement dump, F2 again = input fixes")

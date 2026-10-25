@@ -33,6 +33,12 @@ function M.install(log)
       local sender = safe(function() return self:get() end)
       log("channel <- guest '" .. body .. "' from " .. safe(function() return sender:GetFName():ToString() end, "?"))
       local cmd = body:match("^(%w+)")
+      if cmd == "act" then
+        local name = body:match("^act|(.+)$")
+        local a = package.loaded["actions"]
+        if name and a then ExecuteInGameThread(function() a.run_for_guest(log, sender, name) end) end
+        return
+      end
       if cmd == "ping" then M.to_guest(log, sender, "pong " .. body:sub(6)) end
       local h = M.handlers[cmd]
       if h then pcall(h, log, sender, body) end

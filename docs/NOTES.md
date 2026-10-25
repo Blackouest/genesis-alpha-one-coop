@@ -337,3 +337,12 @@
 - Message channel with existing engine RPCs: guest -> host `PlayerController.ServerChangeName("COOP|...")` hooked on the host; host -> guest `PlayerController.ClientMessage("COOP|...")` hooked on the guest. F6 on the guest sends a ping, the host must answer pong.
 - F6 also installs script hooks on every `InpActEvt_*` Blueprint event of Eden_PlayerCharacter_C, BP_PlayerController_EdenAlpha_C and BuilderCharacter_C, so the log shows which input actions the guest's key presses trigger (weapon, map, use).
 - Player init is now automatic: host initializes its copy of the guest after the reopen, guest its own pawn after the reveal (`initfix.apply`).
+
+## Phase 4b: channel works; guest actions identified (2026-10-25 16:40, probe v20)
+### Observations
+- Auto init ran on both sides (host 16:39:39 for its copy of the guest, guest 16:39:50 for its pawn).
+- **Channel works both ways:** guest `ServerChangeName("COOP|ping 16:40:10")` reached the host hook from the guest's BP_PlayerController_EdenAlpha_C; host `ClientMessage("COOP|pong 16:40:10")` reached the guest in the same second. No crash from these two native hooks.
+- 154 `InpActEvt_*` events hooked (of 486 functions) on Eden_PlayerCharacter_C, BP_PlayerController_EdenAlpha_C, BuilderCharacter_C (`/Game/EdenAlpha1/Blueprints/Player/...`).
+- Guest key presses fire locally: `InpActEvt_PC_SelectWeapon_1_..._50/_51` (pressed/released pairs), `PC_SelectWeapon_2_..._48/_49`, `PC_ActivateBuilderMode_..._23` (TAB, map/builder), plus movement events and very frequent `ChangeInputType_90` / `KeyboardAnyKeyConfirm_82`. On the host, TAB also fires `BuilderCharacter_C.InpActEvt_PC_ActivateBuilderMode_18` (the host then possesses its builder); `PC_Fire_25` seen on the host.
+### Next (probe v21)
+- Guest forwards every own-pawn action event except movement/look/jump/crouch/sprint/input-type noise as `act|<event name>`; host calls that same event on the sender's pawn with an empty FKey. Action hooks now install automatically.

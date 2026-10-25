@@ -58,6 +58,8 @@ function M.start_host(log, levels)
       fade_watch(log)
       local init = package.loaded["initfix"]
       if init and t > 6 then init.apply(log, "host") end
+      local acts = package.loaded["actions"]
+      if acts and t > 6 and not acts.installed then acts.install(log) end
     end)
     return false
   end)
@@ -79,6 +81,8 @@ function M.start_client(log, levels, reveal)
           reveal.run(log)
           local init = package.loaded["initfix"]
           if init then init.apply(log, "client") end
+          local acts = package.loaded["actions"]
+          if acts and not acts.installed then acts.install(log) end
           phase = "done"; log("auto: guest flow done")
         end
       end
