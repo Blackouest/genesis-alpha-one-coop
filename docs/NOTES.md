@@ -221,3 +221,15 @@
 ### Next (probe v13)
 - Back to the v10 hook set (ran without crash) plus safe watchers, armed on F9/F8: every actor BeginPlay (class + name), every new UserWidget, every console command.
 - v13 first upload had new code appended after `return M` in hooks.lua -> "hooks.lua:23: <eof> expected near 'M'", the whole CoopProbe mod failed to load, so that test logged nothing. Fixed; every script is now syntax-checked with Lua 5.4 (`tools/check_lua.sh`) before it is copied to the game.
+
+## Phase 3q: what the host spawns when the guest arrives (2026-10-25 15:08, probe v13)
+### Observations
+- Host, at the second the guest joined (15:08:08), only these BeginPlays, no console command, no new widget:
+  Genesis_PlayerState_C, CameraActor, PlayerCameraManager, BP_PlayerController_EdenAlpha_C, **BP_PlayerRemoteCamera_C, BP_PlayerInventoryAvatar_C, BuilderCharacter_C**, Eden_PlayerCharacter_C.
+- The host's own set (spawned by the `?listen` reopen) has the same helper actors: BP_PlayerRemoteCamera_C, BP_PlayerInventoryAvatar_C, BuilderCharacter_C. So each player gets one of each, but single-player code most likely looks them up as "the" instance.
+- Guest side: receives replicated ship modules (`BP_Bld_*`), crew (`CrewCharacterClass_C` with `Crew_HealthStatus_C` widgets), robots (`Rob1_Robot_C`), doors, weapons (pistol, energy barrier, multikit, biosucker, power shotgun, sentry gun), BP_Galaxy_C, Genesis_GameState_C/PlayerState_C, BP_MiniMapPlayer, PlayerSpectator_C. Nothing logged after 15:08:09 on the guest.
+- UE object index suffixes count down: newer objects have smaller numbers.
+### Hypothesis
+- One of the guest's duplicate helpers (most likely BP_PlayerRemoteCamera_C) takes over the host's view or render target.
+### Next (probe v14)
+- F1 (host only): list the helper actors with owner/instigator/location, then destroy the newest duplicate of BP_PlayerRemoteCamera_C, then BuilderCharacter_C, then BP_PlayerInventoryAvatar_C, then CameraActor, one per press.
