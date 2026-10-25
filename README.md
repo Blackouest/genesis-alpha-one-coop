@@ -6,7 +6,7 @@ The game is single-player only and its developers said there are no multiplayer 
 **Status: research prototype. Two players can be in the same ship and walk around; actions do not work for the guest yet.**
 
 Part of [Co-op Anything](https://github.com/cranebeaker/coop-anything), claim issue
-[#199](https://github.com/cranebeaker/coop-anything/issues/199).
+[#199](https://github.com/cranebeaker/coop-anything/issues/199), write-up PR [#202](https://github.com/cranebeaker/coop-anything/pull/202) (draft).
 
 ## What works so far (tested 2026-10-25, two instances on one PC)
 
