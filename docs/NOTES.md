@@ -330,3 +330,10 @@
 2. Guest-to-host action channel without new RPCs: an existing reliable server RPC carrying a string (candidate: `PlayerController:ServerChangeName`, hooked on the host), host-to-guest with `ClientMessage`.
 3. Forward the guest's input actions (Blueprint `InpActEvt_*` functions, script hooks) to the host and run them there on the guest's pawn; then handle Blueprint code that uses GetPlayerController(0) / GetPlayerCharacter(0) (impersonation window, see the Doors of Trithius write-up).
 4. Third-person body for remote players; door state sync; the parts of the ship the guest does not see.
+
+## Phase 4a: guest actions, step 1 (2026-10-25, probe v20)
+### Plan
+- Guest movement works; every other guest action runs single-player Blueprint on the guest without authority.
+- Message channel with existing engine RPCs: guest -> host `PlayerController.ServerChangeName("COOP|...")` hooked on the host; host -> guest `PlayerController.ClientMessage("COOP|...")` hooked on the guest. F6 on the guest sends a ping, the host must answer pong.
+- F6 also installs script hooks on every `InpActEvt_*` Blueprint event of Eden_PlayerCharacter_C, BP_PlayerController_EdenAlpha_C and BuilderCharacter_C, so the log shows which input actions the guest's key presses trigger (weapon, map, use).
+- Player init is now automatic: host initializes its copy of the guest after the reopen, guest its own pawn after the reveal (`initfix.apply`).
