@@ -18,7 +18,8 @@ Part of [Co-op Anything](https://github.com/cranebeaker/coop-anything), claim is
 | Second instance joins over `127.0.0.1` | works: host sees 2 controllers and 2 characters, guest possesses its own character |
 | Ship modules on the guest | **not replicated**: the ship is built from ~31 runtime level instances the guest never gets |
 | Copying the module list to the guest | modules load, then the guest is disconnected (instance names differ from the host's) |
-| Host screen after the guest joins | goes black, cause unknown |
+| Host and guest screens after the guest joins | went black: the HUD's `FadeOutBorder` stays opaque. Hidden by the mod: **both windows render** |
+| Live sync | the guest sees the host's weapon move in real time (host body not visible yet: first-person-only mesh) |
 
 Full lab notes, with observations, hypotheses and unknowns kept apart: [docs/NOTES.md](docs/NOTES.md).
 Plan: [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -43,6 +44,8 @@ Other builds (Steam, GOG, Game Pass) are untested.
 3. Copy `mod/CoopProbe` to `Genesis_EGS/Binaries/Win64/Mods/CoopProbe` and add `CoopProbe : 1` to `Mods/mods.txt`.
 4. Copy `mod/Launch_second_window.bat` next to the exe.
 
+Since v17 the join is automatic: **host presses F9, guest presses F8**, the mod copies the ship levels, removes the guest's loading screen and clears the stuck black fade.
+
 Keys (UE4SS key binds reach **every** running game window; each window locks its role on the first F9 or F8):
 
 | Key | Action |
@@ -55,7 +58,7 @@ Keys (UE4SS key binds reach **every** running game window; each window locks its
 | F4 | guest: load those levels (engine-chosen names; 4.23 has no name override) and log the names |
 | F3 | guest: force the loaded ship levels visible and hide the loading screen |
 | F2 | render dump: material parameter collections, pawn camera, post-process volumes, HUD |
-| F1 | list dark full-screen HUD images/borders; press again to hide them |
+| F1 | list dark HUD images/borders; press again to hide the black `FadeOutBorder` |
 
 Each window logs to `Mods/CoopProbe/probe_HHMMSS.log`.
 

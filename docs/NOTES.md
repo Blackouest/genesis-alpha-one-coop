@@ -262,3 +262,17 @@
 - The host's scene is rendered; the black is drawn on top at the UI level (HighResShot excludes UMG). Most likely a full-screen black image inside the HUD widget tree that the guest's arrival turns on (single-player fade logic) and that switching to the builder/map UI turns off.
 ### Next (probe v16)
 - F1: list every visible Image/Border whose widget chain reaches a widget in the viewport, with visibility, render opacity and colour; flag near-black opaque ones. F1 again hides the flagged ones.
+
+## Phase 3u: BLACK SCREEN SOLVED - `FadeOutBorder` in the HUD (2026-10-25 15:30, probe v16)
+### Observations
+- F1 list on both windows: 128 visible Images/Borders inside viewport widgets. The only full-screen black one is **`Border FadeOutBorder` in `PlayerHudWidget_C`**, visibility 4 (SelfHitTestInvisible), render opacity 1, colour 0,0,0,1. The 17 others are ordinary dark panel backgrounds (PlayerHealthWidget, PlayerCurrentWeapon, AlienMotionTracker, CrewWeaponSelectionItem, TalkScreen, TutorialWarning, ControllerButtonHintWidget, LoadingScreen hint boxes).
+- After hiding them (F1 twice): **both windows show the game**. Host: normal first-person view. Guest: world visible behind the "CHARGEMENT" loading screen (LoadingScreen_Widget_C, nested in PlayerHudWidget_C); the **host's weapon is seen moving as the host walks** (live replication works), but no host body (first-person-only mesh).
+- LoadingScreen_Widget_C lives inside PlayerHudWidget_C on both machines.
+- Picture: docs/img/2026-10-25_both-windows-after-hiding-FadeOutBorder.jpg
+### Derived
+- The single-player HUD fade (`FadeOutBorder`) is left fully black when the second player arrives, on the host and on the guest. Opening the map/builder UI also clears it (owner's observation).
+- Remote players need a third-person body: the player mesh is first-person only.
+### Next (probe v17, automatic flow)
+- Host: F9 only. Exports the ship levels 6 s later.
+- Guest: F8 only. Once connected with a pawn: import ship levels (+4 s), remove the loading screen (+6 s).
+- Both: if FadeOutBorder stays fully black for 6 s, hide it. F1 now hides only FadeOutBorder.

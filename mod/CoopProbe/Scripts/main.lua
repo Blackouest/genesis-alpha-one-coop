@@ -87,6 +87,7 @@ end
 RegisterKeyBind(Key.F9, function()
   if ROLE == "client" then log("F9 ignored: this window is the client"); return end
   ROLE = "host"
+  if not AUTO_STARTED and package.loaded["auto"] then AUTO_STARTED = true; package.loaded["auto"].start_host(log, package.loaded["levels"]) end
   if package.loaded["hooks"] then package.loaded["hooks"].armed = true end
   ExecuteInGameThread(function()
     local pc = FindFirstOf("PlayerController")
@@ -101,6 +102,7 @@ end)
 RegisterKeyBind(Key.F8, function()
   if ROLE == "host" then log("F8 ignored: this window is the host"); return end
   ROLE = "client"
+  if not AUTO_STARTED and package.loaded["auto"] then AUTO_STARTED = true; package.loaded["auto"].start_client(log, package.loaded["levels"], package.loaded["reveal"]) end
   if package.loaded["hooks"] then package.loaded["hooks"].armed = true end
   ExecuteInGameThread(function()
     local addr = "127.0.0.1"
@@ -138,6 +140,8 @@ local overlay = require("overlay")
 RegisterKeyBind(Key.F1, function()
   ExecuteInGameThread(function() overlay.press(log) end)
 end)
+local auto = require("auto")
+log("loaded v17: automatic flow. Host: F9 only. Guest: F8 only.")
 log("loaded v16: F1 = list dark HUD overlays, F1 again = hide them")
 log("loaded v15b: F1 = engine screenshots, host now, client +4 s")
 log("loaded v14: F1 (host) destroys the next duplicate per-player helper actor")

@@ -52,7 +52,7 @@ function M.press(log)
           n = n + 1
           local dark = type(r) == "number" and r < 0.1 and g < 0.1 and b < 0.1 and (a or 0) > 0.5
           log(string.format("%s %s in %s vis=%s opacity=%s color=%s,%s,%s,%s%s", c, nm(w), uwc, tostring(vis), f3(op), f3(r), f3(g), f3(b), f3(a), dark and "  <-- DARK" or ""))
-          if dark then table.insert(M.suspects, w) end
+          if dark and nm(w) == "FadeOutBorder" then table.insert(M.suspects, w) end
         end
       end
     end
