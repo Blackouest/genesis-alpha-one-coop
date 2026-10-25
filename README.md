@@ -52,7 +52,7 @@ Keys (UE4SS key binds reach **every** running game window; each window locks its
 | F7 | dump network state, controllers, characters, streaming levels, widgets |
 | F6 | stop the camera fade and view your own pawn |
 | F5 | host: write the ship's streaming levels to `Mods/CoopProbe/levels.txt` |
-| F4 | guest: load those levels using the host's instance names |
+| F4 | guest: load those levels (engine-chosen names; 4.23 has no name override) and log the names |
 
 Each window logs to `Mods/CoopProbe/probe_HHMMSS.log`.
 

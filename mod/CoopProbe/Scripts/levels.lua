@@ -61,14 +61,7 @@ end
 function M.import(log)
   local pc, world = world_of_local_pc()
   if not world then log("import: no world"); return end
-  local params = lli_params()
-  log("LoadLevelInstance params: " .. table.concat(params, ", "))
-  local has_override = false
-  for _, n in ipairs(params) do if n == "OptionalLevelNameOverride" then has_override = true end end
-  if not has_override then
-    log("import: this engine build has no OptionalLevelNameOverride; NOT loading (it would get us kicked). Need plan B.")
-    return
-  end
+  -- 4.23 has no OptionalLevelNameOverride (checked in the exe): load with engine-chosen names and log them
   local f = io.open(FILE, "r"); if not f then log("import: no " .. FILE .. " (press F5 on host first)"); return end
   local cdo = StaticFindObject("/Script/Engine.Default__LevelStreamingDynamic")
   local n, okn = 0, 0
@@ -79,7 +72,7 @@ function M.import(log)
       local ok, res = pcall(function()
         return cdo:LoadLevelInstance(pc, name,
           { X = tonumber(x), Y = tonumber(y), Z = tonumber(z) },
-          { Pitch = tonumber(p), Yaw = tonumber(yw), Roll = tonumber(r) }, {}, inst)
+          { Pitch = tonumber(p), Yaw = tonumber(yw), Roll = tonumber(r) }, {})
       end)
       local good = ok and res and safe(function() return res:IsValid() end, false)
       if good then okn = okn + 1 end
@@ -87,7 +80,12 @@ function M.import(log)
     end
   end
   f:close()
-  log(string.format("import: %d/%d level instances requested; listing in 4 s", okn, n))
-  LoopAsync(4000, function() ExecuteInGameThread(function() M.export(log, true) end); return true end)
+  log(string.format("import: %d/%d level instances requested; listing every 1 s for 6 s", okn, n))
+  local ticks = 0
+  LoopAsync(1000, function()
+    ticks = ticks + 1
+    ExecuteInGameThread(function() log("list t+" .. ticks .. "s"); M.export(log, true) end)
+    return ticks >= 6
+  end)
 end
 return M

@@ -6,7 +6,9 @@ Follows the Co-op Anything phase map. `[x]` = verified by a test run, see NOTES.
 - [x] Identify build, engine (UE 4.23), tooling (UE4SS 3.0.1)
 - [x] Listen server via IpNetDriver
 - [x] Second instance joins, gets its own possessed character
-- [ ] Ship modules on the guest with the host's exact instance names (OptionalLevelNameOverride, or plan B)
+- [x] Check for OptionalLevelNameOverride in 4.23: not present
+- [ ] Ship modules on the guest with the host's exact instance names (plan B: line up the instance counter, or a native hook)
+- [ ] Log which package names the guest reports and why it is kicked
 - [ ] Find what the guest's loading screen waits for (`LoadingScreen_Widget_C`)
 - [ ] Find why the host's screen goes black when the guest joins
 - [ ] Separate save folder for test copies

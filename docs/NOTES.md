@@ -128,3 +128,12 @@
 - The client's instances get its own `_LevelInstance_<N>` numbers. When they turn visible the client calls `ServerUpdateLevelVisibility(<client name>)`; the server does not know that package and closes the connection. Module actors are also addressed by those package paths, so the names must match exactly anyway.
 ### Next (probe v7)
 - Export also stores the host's instance short name; import calls `LoadLevelInstance(..., OptionalLevelNameOverride=<host name>)` only if that parameter exists in this build (logs the UFunction's parameters), then lists the client's loaded instance names after 4 s.
+
+## Phase 3h: no level-name override in 4.23 (2026-10-25)
+### Observations
+- Probe v7 F4 failed before loading anything: `StaticFindObject("/Script/Engine.LevelStreamingDynamic:LoadLevelInstance"):ForEachProperty` -> "UObject instance is nullptr" (UE4SS 3.0.1).
+- Exe strings contain `LoadLevelInstance`, `LoadLevelInstanceBySoftObjectPtr`, `_LevelInstance_`, `ServerUpdateLevelVisibility(_Validate)` but **not** `OptionalLevelNameOverride` -> this 4.23 build cannot choose instance names from Blueprint/Lua.
+- In the v6 test, host numbers were 32..62 and the client had also loaded its own save before joining, so its numbers may already have matched; client names were never logged. The kick hypothesis is unverified.
+### Next (probe v7b)
+- Import loads with engine-chosen names and lists the client's instance names every second for 6 s.
+- `hooks.lua`: RegisterHook on ServerUpdateLevelVisibility (host sees what the guest reports), ClientWasKicked, ClientReturnToMainMenu(WithTextReason), ClientUpdateLevelStreamingStatus, GameModeBase K2_OnLogout.
