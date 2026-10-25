@@ -286,3 +286,14 @@
 - The watch reset its counter whenever it met a non-black FadeOutBorder copy, so it never reached 3 ticks (bug in v17).
 ### Next (probe v17b)
 - Fade watch counts "any copy black" and hides every black copy after 3 checks; logs copies/black count on change.
+
+## Phase 3w: BOTH WINDOWS RENDER THE SHIP, automatically (2026-10-25 16:00, probe v17b)
+### Observations
+- Fade watch log: 3 FadeOutBorder copies on each side. Host: none black until the guest joined (16:00:10), then 1 black, hidden at 16:00:14. Guest: 1 black from connection (16:00:11), hidden at 16:00:15. **This confirms FadeOutBorder alone causes the black screen** (only it was hidden).
+- Owner screenshot: host first-person view with weapon and HUD hints; guest sees the ship interior (imported modules, lit) with HUD hints. Picture: docs/img/2026-10-25_both-windows-render-ship-v17b.jpg
+- Host: everything works. Guest: spawned high up, can only turn the camera; no movement, no weapon selection, no map.
+- Earlier dumps already showed the guest pawn at z=319 on the guest vs z=98 on the host.
+### Hypothesis
+- The single-player load flow disables player input / movement until "loading done", and that event never fires for the guest.
+### Next (probe v18)
+- F2: dump local PC (move/look input ignored, cursor, interesting bool/number BP vars), pawn (location, velocity, InputEnabled, role, CharacterMovement mode/gravity/speed/active, BP vars), all player characters' locations. F2 again: ResetIgnoreInputFlags, SetIgnoreMove/LookInput(false), pawn EnableInput, SetMovementMode(Walking), SetInputMode_GameOnly.

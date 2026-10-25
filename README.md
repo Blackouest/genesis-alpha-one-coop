@@ -19,6 +19,7 @@ Part of [Co-op Anything](https://github.com/cranebeaker/coop-anything), claim is
 | Ship modules on the guest | **not replicated**: the ship is built from ~31 runtime level instances the guest never gets |
 | Copying the module list to the guest | modules load, then the guest is disconnected (instance names differ from the host's) |
 | Host and guest screens after the guest joins | went black: the HUD's `FadeOutBorder` stays opaque. Hidden by the mod: **both windows render** |
+| Guest view | ship modules imported, guest sees the ship; but the guest cannot move, switch weapons or open the map yet |
 | Live sync | the guest sees the host's weapon move in real time (host body not visible yet: first-person-only mesh) |
 
 Full lab notes, with observations, hypotheses and unknowns kept apart: [docs/NOTES.md](docs/NOTES.md).
