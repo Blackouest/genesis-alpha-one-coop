@@ -297,3 +297,20 @@
 - The single-player load flow disables player input / movement until "loading done", and that event never fires for the guest.
 ### Next (probe v18)
 - F2: dump local PC (move/look input ignored, cursor, interesting bool/number BP vars), pawn (location, velocity, InputEnabled, role, CharacterMovement mode/gravity/speed/active, BP vars), all player characters' locations. F2 again: ResetIgnoreInputFlags, SetIgnoreMove/LookInput(false), pawn EnableInput, SetMovementMode(Walking), SetInputMode_GameOnly.
+
+## Phase 3x: the guest's player character is never initialized (2026-10-25 16:06, probe v18)
+### Observations (F2 dump)
+| | host's own pawn (server) | guest's own pawn (guest) |
+|---|---|---|
+| IsPlayerInitialized | true | **false** |
+| BlockActionFPSPlayerInput | false | **true** |
+| PlayerMovementSpeed | 1400 | **0** |
+| CharacterMovement | mode 1 (Walking), active, MaxWalkSpeed 1400 | **mode 3 (Falling), inactive**, MaxWalkSpeed 1200 |
+| ReplicatedMovementMode | 1 | 0 |
+| location | -189,373,98 | 42,-155,319 (host sees it at 43,-310,98) |
+- PlayerController: move/look input not ignored on either side; cursor off.
+- Generic fixes (ResetIgnoreInputFlags, SetIgnoreMove/LookInput(false), EnableInput, SetMovementMode(Walking), SetInputMode_GameOnly) all ran, guest still cannot move, switch weapons or open the map.
+- Owner: the guest does not see the rest of the ship (only part of it). Which parts are missing: unknown.
+### Next (probe v19)
+- F2: list init-like functions on Eden_PlayerCharacter_C and BP_PlayerController_EdenAlpha_C; show every player character's init state (host shows its copy of the guest too).
+- F2 again: on every uninitialized, non-simulated player character, copy the initialized values (IsPlayerInitialized, BlockActionFPSPlayerInput=false, PlayerMovementSpeed, activate CharacterMovement, MaxWalkSpeed, Walking).
