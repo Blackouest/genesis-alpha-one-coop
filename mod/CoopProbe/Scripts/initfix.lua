@@ -27,6 +27,41 @@ local function list_functions(log, obj, label)
   log(label .. " functions: " .. table.concat(names, ", "))
 end
 
+local GEAR = { "weapon", "inventory", "equip", "builder", "tool", "multitool", "slot", "item", "flashlight", "hud", "widget", "oxygen" }
+local function gear(log, ch)
+  local out = {}
+  local c = safe(function() return ch:GetClass() end)
+  for _ = 1, 3 do
+    if not c or not safe(function() return c:IsValid() end, false) then break end
+    if not nm(c):find("_C$") then break end
+    safe(function()
+      c:ForEachProperty(function(prop)
+        local pn = prop:GetFName():ToString()
+        local l = pn:lower()
+        local hit = false
+        for _, w in ipairs(GEAR) do if l:find(w, 1, true) then hit = true; break end end
+        if hit then
+          local v = safe(function() return ch[pn] end)
+          local t = type(v)
+          local shown
+          if t == "boolean" or t == "number" then shown = tostring(v)
+          elseif t == "userdata" then
+            local n = safe(function() return v:GetArrayNum() end)
+            if n then shown = "[" .. n .. "]"
+            else
+              local valid = safe(function() return v:IsValid() end, nil)
+              if valid == true then shown = nm(v) elseif valid == false then shown = "none" end
+            end
+          end
+          if shown then table.insert(out, pn .. "=" .. shown) end
+        end
+      end)
+    end)
+    c = safe(function() return c:GetSuperStruct() end)
+  end
+  log("  gear " .. nm(ch) .. ": " .. table.concat(out, " "))
+end
+
 local function state(ch)
   return string.format("init=%s block=%s speed=%s mode=%s cmActive=%s maxWalk=%s role=%s",
     tostring(safe(function() return ch.IsPlayerInitialized end, "?")),
@@ -47,8 +82,18 @@ function M.press(log)
     if chars[1] then list_functions(log, chars[1], "Eden_PlayerCharacter_C") end
     local pc = FindFirstOf("BP_PlayerController_EdenAlpha_C")
     if pc then list_functions(log, pc, "BP_PlayerController_EdenAlpha_C") end
-    for _, ch in ipairs(chars) do log("CHAR " .. nm(ch) .. " " .. state(ch)) end
-    log("---- end (F2 again = initialize the uninitialized ones) ----")
+    for _, ch in ipairs(chars) do log("CHAR " .. nm(ch) .. " " .. state(ch)); gear(log, ch) end
+    log("---- end (F2 again on the host = give the guest its weapons with InitWeaponsFromSave) ----")
+    return
+  end
+  if _G.COOP_ROLE == "host" then
+    for _, ch in ipairs(chars) do
+      if not safe(function() return ch:IsLocallyControlled() end, true) then
+        local ok, err = pcall(function() ch:InitWeaponsFromSave() end)
+        log("host: InitWeaponsFromSave on guest " .. nm(ch) .. " -> " .. (ok and "ok" or tostring(err)))
+        gear(log, ch)
+      end
+    end
     return
   end
   -- reference values from an initialized character if this world has one

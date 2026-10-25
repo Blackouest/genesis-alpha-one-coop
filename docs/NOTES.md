@@ -346,3 +346,13 @@
 - Guest key presses fire locally: `InpActEvt_PC_SelectWeapon_1_..._50/_51` (pressed/released pairs), `PC_SelectWeapon_2_..._48/_49`, `PC_ActivateBuilderMode_..._23` (TAB, map/builder), plus movement events and very frequent `ChangeInputType_90` / `KeyboardAnyKeyConfirm_82`. On the host, TAB also fires `BuilderCharacter_C.InpActEvt_PC_ActivateBuilderMode_18` (the host then possesses its builder); `PC_Fire_25` seen on the host.
 ### Next (probe v21)
 - Guest forwards every own-pawn action event except movement/look/jump/crouch/sprint/input-type noise as `act|<event name>`; host calls that same event on the sender's pawn with an empty FKey. Action hooks now install automatically.
+
+## Phase 4c: forwarding works end to end, actions do nothing yet (2026-10-25 18:28, probe v21)
+### Observations
+- Every guest action reached the host and ran on the guest's pawn without a Lua error: `PC_SelectWeapon_1/2` (pressed/released), `PC_ActivateBuilderMode_23` (TAB), `PC_HoldUse_12/13`, `PC_Use_19/20`, `PC_Multitool_43`.
+- Owner: weapon selection makes the weapon-selection HUD appear **on the host and on the guest**, but no weapon change. Map (TAB), PDA (T), lockers and screens: nothing.
+### Derived
+- The forwarded Blueprint uses player-0 helpers for UI (host's HUD shows the guest's selection).
+- The guest's pawn on the host never got its loadout: our init copied flags only; the game's `InitWeaponsFromSave` never ran for it.
+### Next (probe v22)
+- F2: per player character, dump weapon/inventory/equipment/builder/tool/slot/item/flashlight/hud/oxygen properties (values, object names, array sizes). F2 again on the host: call `InitWeaponsFromSave` on the guest's character and dump again.

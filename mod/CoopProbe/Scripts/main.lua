@@ -153,6 +153,7 @@ RegisterKeyBind(Key.F6, function()
     if ROLE == "client" then channel.to_host(log, "ping " .. os.date("%H:%M:%S")) end
   end)
 end)
+log("loaded v22: F2 = player + gear dump; F2 again on the host = InitWeaponsFromSave for the guest")
 log("loaded v21: guest actions forwarded to the host (act|<InpActEvt>), action hooks auto-installed")
 log("loaded v20: auto init, F6 = hook input actions + guest pings host")
 log("loaded v19: F2 = player init dump, F2 again = initialize uninitialized player characters")
