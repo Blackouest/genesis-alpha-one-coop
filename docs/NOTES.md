@@ -137,3 +137,13 @@
 ### Next (probe v7b)
 - Import loads with engine-chosen names and lists the client's instance names every second for 6 s.
 - `hooks.lua`: RegisterHook on ServerUpdateLevelVisibility (host sees what the guest reports), ClientWasKicked, ClientReturnToMainMenu(WithTextReason), ClientUpdateLevelStreamingStatus, GameModeBase K2_OnLogout.
+
+## Phase 3i: instance names DO match (2026-10-25 14:02, probe v7b)
+### Observations
+- Each instance names its first save load `_LevelInstance_1..31`; the host's `?listen` reopen gives `32..62`.
+- The guest also loaded its own save first (1..31), so its F4 import produced `_LevelInstance_32..62` in the same order: **identical to the host, all 31** (listed at t+1 s).
+- `ServerUpdateLevelVisibility` hook fires on the calling side too (seen in standalone), with the instance package name.
+- Up to t+6 s after the import, no visibility RPC from the guest showed up on either side, and no kick/return-to-menu RPC. Connection state after that: pending owner's F7.
+### Conclusion so far
+- The v6 kick was **not** caused by a name mismatch (or names were already matching then too). Cause still unknown.
+- Instance numbering is deterministic per process (a global counter), which a real mod can rely on or line up.
