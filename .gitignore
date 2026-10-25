@@ -1,0 +1,9 @@
+# Never commit game files, logs or saves
+*.pak
+*.exe
+*.dll
+*.sav
+*.dmp
+*.log
+levels.txt
+local/
