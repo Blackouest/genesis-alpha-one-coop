@@ -20,23 +20,32 @@ local function connected_client()
 end
 
 local black_ticks = 0
+-- Several PlayerHudWidget copies can exist (old ones from earlier map loads), so look at all of them:
+-- if ANY FadeOutBorder stays fully black for 3 checks in a row, hide every black one.
 local function fade_watch(log)
+  local black = {}
   for _, b in ipairs(FindAllOf("Border") or {}) do
     if b:IsValid() and safe(function() return b:GetFName():ToString() end, "") == "FadeOutBorder" then
       local vis = safe(function() return b:GetVisibility() end, 1)
       local a = safe(function() return b.BrushColor.A end, 0)
       local op = safe(function() return b:GetRenderOpacity() end, 0)
-      if (vis == 0 or vis == 3 or vis == 4) and a > 0.99 and op > 0.99 then
-        black_ticks = black_ticks + 1
-        if black_ticks >= 3 then
-          safe(function() b:SetVisibility(2) end)
-          log("auto: FadeOutBorder was fully black for 6 s -> hidden")
-          black_ticks = 0
-        end
-      else
-        black_ticks = 0
+      if (vis == 0 or vis == 3 or vis == 4) and type(a) == "number" and a > 0.99 and type(op) == "number" and op > 0.99 then
+        table.insert(black, b)
       end
     end
+  end
+  local total = 0
+  for _, b in ipairs(FindAllOf("Border") or {}) do
+    if b:IsValid() and safe(function() return b:GetFName():ToString() end, "") == "FadeOutBorder" then total = total + 1 end
+  end
+  local sig = total .. "/" .. #black
+  if sig ~= M.last_sig then log("auto: FadeOutBorder copies=" .. total .. " fully black=" .. #black); M.last_sig = sig end
+  if #black == 0 then black_ticks = 0; return end
+  black_ticks = black_ticks + 1
+  if black_ticks >= 3 then
+    for _, b in ipairs(black) do safe(function() b:SetVisibility(2) end) end
+    log("auto: " .. #black .. " FadeOutBorder fully black for 6 s -> hidden")
+    black_ticks = 0
   end
 end
 

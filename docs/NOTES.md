@@ -276,3 +276,13 @@
 - Host: F9 only. Exports the ship levels 6 s later.
 - Guest: F8 only. Once connected with a pawn: import ship levels (+4 s), remove the loading screen (+6 s).
 - Both: if FadeOutBorder stays fully black for 6 s, hide it. F1 now hides only FadeOutBorder.
+
+## Phase 3v: v17 automatic flow ran, but the fade watch never fired (2026-10-25 15:40)
+### Observations
+- Host: F9 -> export 31 levels at +6 s. Guest: F8 -> connected with a pawn after 2 s, imported 31/31 levels at +4 s, removed 3 LoadingScreen_Widget copies at +10 s. Both screens stayed black; no "FadeOutBorder hidden" line.
+- Owner: opening the map on the host clears the host's black again; nothing clears the guest's.
+- Several PlayerHudWidget/LoadingScreen copies exist at once (old ones from earlier map loads).
+### Derived
+- The watch reset its counter whenever it met a non-black FadeOutBorder copy, so it never reached 3 ticks (bug in v17).
+### Next (probe v17b)
+- Fade watch counts "any copy black" and hides every black copy after 3 checks; logs copies/black count on change.
