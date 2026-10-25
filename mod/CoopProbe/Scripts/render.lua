@@ -57,8 +57,32 @@ function M.dump(log)
   log("---- end render ----")
 end
 
--- F1: turn world rendering back on for this window
+-- F1: kill post-processing to see if an overlay is what is black
 function M.fix(log)
+  local cmds = { "ShowFlag.PostProcessing 0", "r.DefaultFeature.AutoExposure 0", "r.TonemapperFilm 0" }
+  local pc0
+  for _, x in ipairs(FindAllOf("PlayerController") or {}) do
+    if x:IsValid() and safe(function() return x:IsLocalController() end, false) then pc0 = x end
+  end
+  local ksl = StaticFindObject("/Script/Engine.Default__KismetSystemLibrary")
+  for _, c in ipairs(cmds) do
+    local ok = pcall(function() ksl:ExecuteConsoleCommand(pc0, c, pc0) end)
+    log("exec " .. c .. " -> " .. tostring(ok))
+  end
+  for _, cam in ipairs(FindAllOf("CameraComponent") or {}) do
+    if cam:IsValid() then
+      local owner = safe(function() return cam:GetOwner() end)
+      local w = safe(function() return cam.PostProcessBlendWeight end, "?")
+      local active = safe(function() return cam:IsActive() end, "?")
+      local nmat = safe(function() return cam.PostProcessSettings.WeightedBlendables.Array:GetArrayNum() end, "?")
+      log(string.format("CAM %s owner=%s active=%s ppWeight=%s blendables=%s", short(cam), short(owner), tostring(active), num(w), tostring(nmat)))
+      safe(function() cam.PostProcessBlendWeight = 0.0 end)
+    end
+  end
+  log("fix: post-process off, all camera post-process weights set to 0")
+end
+
+function M.old_fix(log)
   local pc
   for _, x in ipairs(FindAllOf("PlayerController") or {}) do
     if x:IsValid() and safe(function() return x:IsLocalController() end, false) then pc = x end

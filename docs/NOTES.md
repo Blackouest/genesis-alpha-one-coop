@@ -188,3 +188,12 @@
 ### Next (probe v10)
 - F2 also logs GetEnableWorldRendering. F1 calls SetEnableWorldRendering(true) on the local window.
 - Hooks: GameplayStatics.SetEnableWorldRendering (who switches it, with what value), GameModeBase.K2_PostLogin.
+
+## Phase 3n: world rendering is on (2026-10-25 14:40, probe v10)
+### Observations
+- Both windows: `GetEnableWorldRendering = true` while black. F1 `SetEnableWorldRendering(true)` changes nothing. The hook saw no game call to SetEnableWorldRendering (only our own).
+- `GameModeBase:K2_PostLogin` hook registered but never fired on the guest's arrival (BlueprintImplementableEvent the game may not implement, or hooks on BP events need another path: unknown).
+### Hypothesis
+- The frame is rendered but covered: a post-process blendable (helmet/visor, death/clone effect) on the pawn camera or the camera manager, or exposure.
+### Next (probe v11)
+- F1: `ShowFlag.PostProcessing 0`, `r.DefaultFeature.AutoExposure 0`, `r.TonemapperFilm 0`, list every CameraComponent (owner, active, PostProcessBlendWeight, blendable count) and set their weights to 0.
