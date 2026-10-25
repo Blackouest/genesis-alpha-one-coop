@@ -220,3 +220,4 @@
 - Prefer RegisterBeginPlayPostHook / NotifyOnNewObject / RegisterProcessConsoleExecPreHook and script (BP) hooks over many native RegisterHook calls; add native hooks one at a time.
 ### Next (probe v13)
 - Back to the v10 hook set (ran without crash) plus safe watchers, armed on F9/F8: every actor BeginPlay (class + name), every new UserWidget, every console command.
+- v13 first upload had new code appended after `return M` in hooks.lua -> "hooks.lua:23: <eof> expected near 'M'", the whole CoopProbe mod failed to load, so that test logged nothing. Fixed; every script is now syntax-checked with Lua 5.4 (`tools/check_lua.sh`) before it is copied to the game.

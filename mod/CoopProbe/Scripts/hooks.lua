@@ -17,7 +17,6 @@ function M.install(log)
     log("hook " .. h[1] .. " -> " .. (ok and "ok" or ("failed: " .. tostring(err))))
   end
 end
-return M
 
 -- v13: safe watchers (no native UFunction hooks). Armed by F9/F8 so the startup load is not logged.
 M.armed = false
@@ -46,3 +45,5 @@ function M.install_watchers(log)
   end)
   log("watcher console exec -> " .. tostring(ok3))
 end
+
+return M
