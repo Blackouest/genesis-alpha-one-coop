@@ -10,7 +10,11 @@ Follows the Co-op Anything phase map. `[x]` = verified by a test run, see NOTES.
 - [ ] Ship modules on the guest with the host's exact instance names (plan B: line up the instance counter, or a native hook)
 - [ ] Log which package names the guest reports and why it is kicked
 - [x] Guest sees the ship (levels copied, loading screen and fade removed by the mod)
-- [ ] Give the guest control: movement, weapons, map (input/movement left disabled by the load flow?)
+- [x] Guest movement (character never initialized by the game; the mod initializes it)
+- [ ] Call the game's own player init on the host for the guest (OnLevelLoadedInitializePlayer / InitializePlayer / InitWeaponsFromSave)
+- [ ] Guest-to-host action channel (existing string RPC, e.g. ServerChangeName) and host-to-guest (ClientMessage)
+- [ ] Forward the guest's input actions to the host (InpActEvt_* hooks) and run them on the guest's pawn; handle GetPlayerController(0) assumptions
+- [ ] Door state sync; ship parts missing on the guest
 - [ ] Third-person body for remote players (player mesh is first-person only)
 - [ ] Find what the guest's loading screen waits for (`LoadingScreen_Widget_C`), to replace the workaround
 - [x] Find why the host's screen goes black when the guest joins (HUD FadeOutBorder left opaque)

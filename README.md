@@ -3,7 +3,7 @@
 An attempt to make **Genesis Alpha One** (Radiant Worlds / Team17, 2019) playable in online co-op.
 The game is single-player only and its developers said there are no multiplayer plans.
 
-**Status: research prototype. Not playable yet.**
+**Status: research prototype. Two players can be in the same ship and walk around; actions do not work for the guest yet.**
 
 Part of [Co-op Anything](https://github.com/cranebeaker/coop-anything), claim issue
 [#199](https://github.com/cranebeaker/coop-anything/issues/199).
@@ -19,7 +19,9 @@ Part of [Co-op Anything](https://github.com/cranebeaker/coop-anything), claim is
 | Ship modules on the guest | **not replicated**: the ship is built from ~31 runtime level instances the guest never gets |
 | Copying the module list to the guest | modules load, then the guest is disconnected (instance names differ from the host's) |
 | Host and guest screens after the guest joins | went black: the HUD's `FadeOutBorder` stays opaque. Hidden by the mod: **both windows render** |
-| Guest view | ship modules imported, guest sees the ship; but the guest cannot move, switch weapons or open the map yet |
+| Guest view | ship modules imported, guest sees the ship |
+| Guest movement | **works** after the mod initializes the guest's character (the game never does); player-to-player collision works |
+| Guest actions | not yet: weapons, map/builder, lockers and terminals run single-player code on the guest without authority |
 | Live sync | the guest sees the host's weapon move in real time (host body not visible yet: first-person-only mesh) |
 
 Full lab notes, with observations, hypotheses and unknowns kept apart: [docs/NOTES.md](docs/NOTES.md).
@@ -58,7 +60,7 @@ Keys (UE4SS key binds reach **every** running game window; each window locks its
 | F5 | host: write the ship's streaming levels to `Mods/CoopProbe/levels.txt` |
 | F4 | guest: load those levels (engine-chosen names; 4.23 has no name override) and log the names |
 | F3 | guest: force the loaded ship levels visible and hide the loading screen |
-| F2 | render dump: material parameter collections, pawn camera, post-process volumes, HUD |
+| F2 | player init dump; press again to initialize uninitialized player characters (lets the guest move) |
 | F1 | list dark HUD images/borders; press again to hide the black `FadeOutBorder` |
 
 Each window logs to `Mods/CoopProbe/probe_HHMMSS.log`.

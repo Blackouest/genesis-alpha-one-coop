@@ -314,3 +314,19 @@
 ### Next (probe v19)
 - F2: list init-like functions on Eden_PlayerCharacter_C and BP_PlayerController_EdenAlpha_C; show every player character's init state (host shows its copy of the guest too).
 - F2 again: on every uninitialized, non-simulated player character, copy the initialized values (IsPlayerInitialized, BlockActionFPSPlayerInput=false, PlayerMovementSpeed, activate CharacterMovement, MaxWalkSpeed, Walking).
+
+## Phase 3y: GUEST CAN MOVE (2026-10-25 16:17, probe v19)
+### Observations
+- Host's copy of the guest character (role 3) was also uninitialized: init=false, block=true, speed 0, CharacterMovement inactive. Guest's own pawn (role 2) the same, mode 3. The host's character as seen on the guest (role 1) also shows init=false (simulated proxy, left alone).
+- F2 x2 set on both: IsPlayerInitialized=true, BlockActionFPSPlayerInput=false, PlayerMovementSpeed=1400, CharacterMovement active, MaxWalkSpeed 1400, Walking.
+- Owner: **the guest now walks** in the ship; **player-to-player collision works**; host sees the guest. A ship door looks closed on the guest but can be walked through (door state not replicated, server-side collision wins).
+- Guest still cannot: open the map, take a weapon (the weapon selection HUD appears), use lockers or screens.
+- Init-related BP functions found on Eden_PlayerCharacter_C: InitializePlayer, OnLevelLoadedInitializePlayer, SetPlayerInitValues, InitWeaponsFromSave, InitializeFlashlight, InitializePostProcessess, InitializeAlienAbility, SpawnBuilderCharacter, SpawnPlayerRemoteCamera, SpawnPlayerInventoryAvatar, SetLoadedOxygen, SetTutorialAfterLoad, OnLoadingFinishedShowConfirm, PossessFinished, HolsterAndBlockPlayerWeaponSelection, InitializePlayerAfterBuildingMenu, OnGenesisInitiated, TeleportPlayerToRandomStartPosition... BP_PlayerController_EdenAlpha_C: SpawnMapMarker, EnableMouseCursor.
+- Picture: docs/img/2026-10-25_guest-moves-v19.jpg
+### Derived
+- Movement works because UE's CharacterMovement already replicates (client prediction + ServerMove). Everything else the guest does runs the single-player Blueprint locally on the guest, without authority: spawning/equipping weapons, possessing the BuilderCharacter for the map/builder view, using terminals. Those have to run on the host for the guest.
+### Plan (next session)
+1. Call the game's own init (`OnLevelLoadedInitializePlayer` / `InitializePlayer`, `InitWeaponsFromSave`) on the host for the guest's character instead of copying values.
+2. Guest-to-host action channel without new RPCs: an existing reliable server RPC carrying a string (candidate: `PlayerController:ServerChangeName`, hooked on the host), host-to-guest with `ClientMessage`.
+3. Forward the guest's input actions (Blueprint `InpActEvt_*` functions, script hooks) to the host and run them there on the guest's pawn; then handle Blueprint code that uses GetPlayerController(0) / GetPlayerCharacter(0) (impersonation window, see the Doors of Trithius write-up).
+4. Third-person body for remote players; door state sync; the parts of the ship the guest does not see.
