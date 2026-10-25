@@ -56,7 +56,7 @@ Keys (UE4SS key binds reach **every** running game window; each window locks its
 | F9 | host: switch to IpNetDriver and reopen the current map with `?listen` |
 | F8 | join the address in `Mods/CoopProbe/host.txt` (default `127.0.0.1`) |
 | F7 | dump network state, controllers, characters, streaming levels, widgets |
-| F6 | force the camera fade to 0 (SetManualCameraFade) and view your own pawn |
+| F6 | hook the input-action events (log what each key does); guest also pings the host over the message channel |
 | F5 | host: write the ship's streaming levels to `Mods/CoopProbe/levels.txt` |
 | F4 | guest: load those levels (engine-chosen names; 4.23 has no name override) and log the names |
 | F3 | guest: force the loaded ship levels visible and hide the loading screen |

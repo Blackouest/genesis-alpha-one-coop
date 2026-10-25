@@ -56,6 +56,8 @@ function M.start_host(log, levels)
     ExecuteInGameThread(function()
       if t == 6 then levels.export(log) end
       fade_watch(log)
+      local init = package.loaded["initfix"]
+      if init and t > 6 then init.apply(log, "host") end
     end)
     return false
   end)
@@ -73,7 +75,12 @@ function M.start_client(log, levels, reveal)
         if wait >= 4 then levels.import(log); phase = "reveal"; wait = 0 end
       elseif phase == "reveal" then
         wait = wait + 2
-        if wait >= 6 then reveal.run(log); phase = "done"; log("auto: guest flow done") end
+        if wait >= 6 then
+          reveal.run(log)
+          local init = package.loaded["initfix"]
+          if init then init.apply(log, "client") end
+          phase = "done"; log("auto: guest flow done")
+        end
       end
       fade_watch(log)
     end)

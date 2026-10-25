@@ -77,4 +77,34 @@ function M.press(log)
   end
   log("---- init done: try to move, switch weapon, open the map ----")
 end
+
+-- Automatic version: host initializes the guest's copy (not locally controlled), guest its own pawn.
+function M.apply(log, mode)
+  local chars = {}
+  for _, ch in ipairs(FindAllOf("Eden_PlayerCharacter_C") or {}) do if ch:IsValid() then table.insert(chars, ch) end end
+  local speed, maxwalk = 1400.0, 1400.0
+  for _, ch in ipairs(chars) do
+    if safe(function() return ch.IsPlayerInitialized end, false) == true then
+      speed = safe(function() return ch.PlayerMovementSpeed end, speed)
+      maxwalk = safe(function() return ch.CharacterMovement.MaxWalkSpeed end, maxwalk)
+    end
+  end
+  for _, ch in ipairs(chars) do
+    local mine = safe(function() return ch:IsLocallyControlled() end, false)
+    local role = safe(function() return ch.Role end, 0)
+    local want = (mode == "host" and role == 3 and not mine) or (mode == "client" and mine)
+    if want and safe(function() return ch.IsPlayerInitialized end, true) == false then
+      local cm = safe(function() return ch.CharacterMovement end)
+      safe(function() ch.BlockActionFPSPlayerInput = false end)
+      safe(function() ch.PlayerMovementSpeed = speed end)
+      safe(function() ch.IsPlayerInitialized = true end)
+      if cm then
+        safe(function() cm:Activate(true) end)
+        safe(function() cm.MaxWalkSpeed = maxwalk end)
+        safe(function() cm:SetMovementMode(1, 0) end)
+      end
+      log("auto-init (" .. mode .. ") " .. nm(ch) .. " -> " .. state(ch))
+    end
+  end
+end
 return M

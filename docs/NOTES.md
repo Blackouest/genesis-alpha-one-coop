@@ -257,7 +257,7 @@
 - `shot` wrote no file even in the solo control -> no information from it in this build.
 - Owner: opening the in-game map on the host brought the host image back. Log at that moment: `BuilderModeWidget_C` created, `BP_ShipCamera_C` and `BP_MapSensedAlienRadar_C` spawned (the map is the builder / ship view).
 - After the host's `?listen` reopen the game ran `slomo 1` ten times (its own console calls).
-- Picture: docs/img/2026-10-25_engine-shots_host-solo_host-black_guest.png
+- Picture: https://github.com/Blackouest/genesis-alpha-one-coop/blob/main/docs/img/2026-10-25_engine-shots_host-solo_host-black_guest.png
 ### Derived
 - The host's scene is rendered; the black is drawn on top at the UI level (HighResShot excludes UMG). Most likely a full-screen black image inside the HUD widget tree that the guest's arrival turns on (single-player fade logic) and that switching to the builder/map UI turns off.
 ### Next (probe v16)
@@ -268,7 +268,7 @@
 - F1 list on both windows: 128 visible Images/Borders inside viewport widgets. The only full-screen black one is **`Border FadeOutBorder` in `PlayerHudWidget_C`**, visibility 4 (SelfHitTestInvisible), render opacity 1, colour 0,0,0,1. The 17 others are ordinary dark panel backgrounds (PlayerHealthWidget, PlayerCurrentWeapon, AlienMotionTracker, CrewWeaponSelectionItem, TalkScreen, TutorialWarning, ControllerButtonHintWidget, LoadingScreen hint boxes).
 - After hiding them (F1 twice): **both windows show the game**. Host: normal first-person view. Guest: world visible behind the "CHARGEMENT" loading screen (LoadingScreen_Widget_C, nested in PlayerHudWidget_C); the **host's weapon is seen moving as the host walks** (live replication works), but no host body (first-person-only mesh).
 - LoadingScreen_Widget_C lives inside PlayerHudWidget_C on both machines.
-- Picture: docs/img/2026-10-25_both-windows-after-hiding-FadeOutBorder.jpg
+- Picture: https://github.com/Blackouest/genesis-alpha-one-coop/blob/main/docs/img/2026-10-25_both-windows-after-hiding-FadeOutBorder.jpg
 ### Derived
 - The single-player HUD fade (`FadeOutBorder`) is left fully black when the second player arrives, on the host and on the guest. Opening the map/builder UI also clears it (owner's observation).
 - Remote players need a third-person body: the player mesh is first-person only.
@@ -290,7 +290,7 @@
 ## Phase 3w: BOTH WINDOWS RENDER THE SHIP, automatically (2026-10-25 16:00, probe v17b)
 ### Observations
 - Fade watch log: 3 FadeOutBorder copies on each side. Host: none black until the guest joined (16:00:10), then 1 black, hidden at 16:00:14. Guest: 1 black from connection (16:00:11), hidden at 16:00:15. **This confirms FadeOutBorder alone causes the black screen** (only it was hidden).
-- Owner screenshot: host first-person view with weapon and HUD hints; guest sees the ship interior (imported modules, lit) with HUD hints. Picture: docs/img/2026-10-25_both-windows-render-ship-v17b.jpg
+- Owner screenshot: host first-person view with weapon and HUD hints; guest sees the ship interior (imported modules, lit) with HUD hints. Picture: https://github.com/Blackouest/genesis-alpha-one-coop/blob/main/docs/img/2026-10-25_both-windows-render-ship-v17b.jpg
 - Host: everything works. Guest: spawned high up, can only turn the camera; no movement, no weapon selection, no map.
 - Earlier dumps already showed the guest pawn at z=319 on the guest vs z=98 on the host.
 ### Hypothesis
@@ -322,7 +322,7 @@
 - Owner: **the guest now walks** in the ship; **player-to-player collision works**; host sees the guest. A ship door looks closed on the guest but can be walked through (door state not replicated, server-side collision wins).
 - Guest still cannot: open the map, take a weapon (the weapon selection HUD appears), use lockers or screens.
 - Init-related BP functions found on Eden_PlayerCharacter_C: InitializePlayer, OnLevelLoadedInitializePlayer, SetPlayerInitValues, InitWeaponsFromSave, InitializeFlashlight, InitializePostProcessess, InitializeAlienAbility, SpawnBuilderCharacter, SpawnPlayerRemoteCamera, SpawnPlayerInventoryAvatar, SetLoadedOxygen, SetTutorialAfterLoad, OnLoadingFinishedShowConfirm, PossessFinished, HolsterAndBlockPlayerWeaponSelection, InitializePlayerAfterBuildingMenu, OnGenesisInitiated, TeleportPlayerToRandomStartPosition... BP_PlayerController_EdenAlpha_C: SpawnMapMarker, EnableMouseCursor.
-- Picture: docs/img/2026-10-25_guest-moves-v19.jpg
+- Picture: https://github.com/Blackouest/genesis-alpha-one-coop/blob/main/docs/img/2026-10-25_guest-moves-v19.jpg
 ### Derived
 - Movement works because UE's CharacterMovement already replicates (client prediction + ServerMove). Everything else the guest does runs the single-player Blueprint locally on the guest, without authority: spawning/equipping weapons, possessing the BuilderCharacter for the map/builder view, using terminals. Those have to run on the host for the guest.
 ### Plan (next session)
