@@ -55,7 +55,7 @@ Keys (UE4SS key binds reach **every** running game window; each window locks its
 | F4 | guest: load those levels (engine-chosen names; 4.23 has no name override) and log the names |
 | F3 | guest: force the loaded ship levels visible and hide the loading screen |
 | F2 | render dump: material parameter collections, pawn camera, post-process volumes, HUD |
-| F1 | host: destroy the next duplicate per-player helper actor (remote camera, builder, inventory avatar, camera actor), one per press |
+| F1 | engine screenshot (`shot`, `HighResShot 1`) in every window, saved under Saved/Screenshots |
 
 Each window logs to `Mods/CoopProbe/probe_HHMMSS.log`.
 

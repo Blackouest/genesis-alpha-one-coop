@@ -233,3 +233,10 @@
 - One of the guest's duplicate helpers (most likely BP_PlayerRemoteCamera_C) takes over the host's view or render target.
 ### Next (probe v14)
 - F1 (host only): list the helper actors with owner/instigator/location, then destroy the newest duplicate of BP_PlayerRemoteCamera_C, then BuilderCharacter_C, then BP_PlayerInventoryAvatar_C, then CameraActor, one per press.
+
+## Phase 3r: duplicate helper actors are not the cause (2026-10-25 15:14, probe v14)
+### Observations
+- Per-player helpers, each with Instigator = its player's Eden_PlayerCharacter_C and no owner: BP_PlayerRemoteCamera_C and BP_PlayerInventoryAvatar_C parked at (0,0,600000), BuilderCharacter_C at (0,0,-199900). Each PlayerCameraManager owns a CameraActor at 0,0,0. Three CineCameraActors (_0, _1, _3) in the map.
+- Destroying the guest's BP_PlayerRemoteCamera_C, then its BuilderCharacter_C (host F1 x2+) did not bring the host image back.
+### Next (probe v15)
+- F1 in both windows: engine screenshots (`shot`, `HighResShot 1`) to tell "the frame is rendered black" from "the frame is fine but not presented".
