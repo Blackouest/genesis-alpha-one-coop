@@ -250,3 +250,15 @@
 - If `shot` also writes nothing in a solo session, its absence means nothing; if it does write in solo, the viewport is not being drawn during the black screen.
 ### Next (probe v15b)
 - F1: host shoots now, client 4 s later (different file numbers). Owner runs a solo control first.
+
+## Phase 3t: the host renders fine behind the black; opening the map brings the image back (2026-10-25 15:22, probe v15b)
+### Observations
+- Engine screenshots (`HighResShot 1`, scene only, no UMG): host solo 15:22:12 and host while black 15:22:52 show the **same, normal** corridor view (1234x694). Guest 15:22:56 (1280x720): almost empty black world with a single door segment floating (no ship levels were imported in this run).
+- `shot` wrote no file even in the solo control -> no information from it in this build.
+- Owner: opening the in-game map on the host brought the host image back. Log at that moment: `BuilderModeWidget_C` created, `BP_ShipCamera_C` and `BP_MapSensedAlienRadar_C` spawned (the map is the builder / ship view).
+- After the host's `?listen` reopen the game ran `slomo 1` ten times (its own console calls).
+- Picture: docs/img/2026-10-25_engine-shots_host-solo_host-black_guest.png
+### Derived
+- The host's scene is rendered; the black is drawn on top at the UI level (HighResShot excludes UMG). Most likely a full-screen black image inside the HUD widget tree that the guest's arrival turns on (single-player fade logic) and that switching to the builder/map UI turns off.
+### Next (probe v16)
+- F1: list every visible Image/Border whose widget chain reaches a widget in the viewport, with visibility, render opacity and colour; flag near-black opaque ones. F1 again hides the flagged ones.
