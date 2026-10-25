@@ -167,3 +167,13 @@
 - The black on both sides is the same thing and sits under the loading screen. Likely a camera fade, as F6 used `StopCameraFade`, which in UE 4.23 sets FadeAmount to the fade *target* (FadeAlpha.Y), so it cannot clear a fade to black.
 ### Next (probe v8b)
 - F6 now calls `PlayerCameraManager:SetManualCameraFade(0, black, false)` on the local controller of each window.
+
+## Phase 3l: not a camera fade (2026-10-25 14:17, probe v8b)
+### Observations
+- `SetManualCameraFade(0)` returned ok on the local controller of both windows; both stay black. View targets are the own pawns on both sides.
+- Host F7: client connections 1, both characters at stable positions. Guest: connected, 31 visible levels, loading screen removed.
+### Hypotheses (open)
+- A global MaterialParameterCollection scalar (screen fade / blackout) set by the arriving player's load flow; it would black out every view in the world, host included.
+- Pawn camera deactivated, or a post-process volume / camera post-process blackout.
+### Next (probe v9)
+- F2 render dump: every MaterialParameterCollection with current vs default scalar values (KismetMaterialLibrary.GetScalarParameterValue), pawn CameraComponent active state and post-process weight, camera location, PostProcessVolumes, pawn bHidden, PlayerHudWidget visibility/opacity.
