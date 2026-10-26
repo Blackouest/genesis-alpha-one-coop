@@ -25,6 +25,8 @@ function M.on_action(log, short, name, selfp)
   if _G.COOP_ROLE == "client" and mine and short == "Eden_PlayerCharacter_C" then
     local ch = package.loaded["channel"]
     if ch then ch.to_host(log, "act|" .. name); M.forwarded = M.forwarded + 1 end
+    local fd = package.loaded["firediag"]
+    if fd and name:find("PC_Fire", 1, true) then pcall(fd.on_fire, log, name) end
   end
 end
 

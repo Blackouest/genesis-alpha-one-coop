@@ -121,7 +121,11 @@ function M.start_client(log, levels, reveal)
         end
       end
       fade_watch(log)
-      if phase == "done" then health_watch(log) end
+      if phase == "done" then
+        health_watch(log)
+        local fd = package.loaded["firediag"]
+        if fd and not fd.installed then pcall(fd.install, log) end
+      end
     end)
     return false
   end)

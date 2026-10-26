@@ -462,3 +462,9 @@
 ### Next (probe v27)
 - Host sends `weap|slot:id,...` to the guest after giving weapons; the guest calls `AddEquipmentToInventory` on its own pawn locally, so its local Fire shows its weapon, projectiles and impacts (damage stays authoritative on the host).
 - Health of every player character logged on change, both sides.
+
+## v28-v30: guest sees its own shots, health bar
+- v28: host sends its PlayerState.Ammunition pool ("ammo|...") and the guest's real health ("hp|h|max") over the ClientMessage channel. Guest health and HUD values now follow the host.
+- v29: tracing showed the guest's local Fire input never reaches AttemptToUpdatePrimaryAction, even with ammo and IsWeaponEquiped=true. Calling PlayerShootsWeapon() on the guest's own pawn 150 ms after a press (when the game did not shoot) runs ReduceAmmo -> WeaponShotEffects -> ShootProjectile locally: the guest now sees its projectile and impact. Confirmed in game.
+- v30: on a health drop the guest plays the game's hit feedback locally (ClientPlayCameraShake with BP_CameraShake_PlayerHit*, Timeline_HitPostprocess), which otherwise only runs on the host's copy of the pawn.
+- Open: hold-to-fire (automatic weapons) only fires once per press on the guest.

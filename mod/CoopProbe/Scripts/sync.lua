@@ -42,6 +42,19 @@ local function me()
   end
 end
 
+-- guest: the game's own hit feedback (camera shake + red post-process), which only ran on the host copy
+local SHAKE = "/Game/EdenAlpha1/Blueprints/Player/Camera/BP_CameraShake_Player%s.BP_CameraShake_Player%s_C"
+function M.hit_effect(log, p, dmg)
+  local kind = dmg < 20 and "HitVeryLight" or (dmg < 40 and "HitLight" or "HitMelee")
+  local path = SHAKE:format(kind, kind)
+  local cls = safe(function() return StaticFindObject(path) end)
+  if not valid(cls) then cls = safe(function() return LoadAsset(path) end) end
+  local pc = safe(function() return p:GetController() end)
+  local a = valid(cls) and valid(pc) and pcall(function() pc:ClientPlayCameraShake(cls, 10, 0, {Pitch=0, Yaw=0, Roll=0}) end)
+  local b = pcall(function() p.Timeline_HitPostprocess:PlayFromStart() end)
+  log("sync: hit effect -" .. tostring(dmg) .. " shake(" .. kind .. ")=" .. tostring(a) .. " postprocess=" .. tostring(b))
+end
+
 -- guest, on a message from the host
 function M.on_host_message(log, body)
   local list = body:match("^ammo|(.*)$")
@@ -58,9 +71,22 @@ function M.on_host_message(log, body)
   if h then
     local p = me(); if not p then return true end
     h, mx = tonumber(h), tonumber(mx)
+    local before = M.guest_hp
+    M.guest_hp = h
+    if before and h and h < before then M.hit_effect(log, p, before - h) end
     safe(function() p.Health = h end)
     if mx then safe(function() p.HealthMax = mx end) end
     local hud = safe(function() return p.PlayerHud end)
+    if valid(hud) and not M.hud_shown then
+      M.hud_shown = true
+      local huds = FindAllOf("PlayerHudWidget_C") or {}
+      log("sync: hud " .. hud:GetFName():ToString() .. " IsHudVisible=" .. tostring(safe(function() return hud.IsHudVisible end))
+        .. " inViewport=" .. tostring(safe(function() return hud:IsInViewport() end)) .. " (" .. #huds .. " hud widgets)")
+      local a = pcall(function() hud:UpdateShowPlayerHud(true) end)
+      local b = pcall(function() hud:ShowFPSHud() end)
+      local c = pcall(function() hud.PlayerHealthWidget:SetVisibility(4) end)
+      log("sync: hud shown: UpdateShowPlayerHud=" .. tostring(a) .. " ShowFPSHud=" .. tostring(b) .. " healthWidget=" .. tostring(c))
+    end
     local ok = valid(hud) and pcall(function() hud:UpdatePlayerHealth(h, mx or 100) end)
     log("sync: health " .. tostring(h) .. "/" .. tostring(mx) .. " hud=" .. tostring(ok))
     return true
