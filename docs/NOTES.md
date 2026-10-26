@@ -450,3 +450,15 @@
 - Player-0 lookups per asset: BuilderCharacter 21, FirstPersonGameMode 17, Eden_PlayerCharacter 16, Genesis_GameInstance 10, BP_Weapon_CLASS 6, PlayerHudWidget 5, plus several weapons and terminals.
 ### Next (probe v26)
 - Guest weapons through `AddEquipmentToInventory(hostWeapon.WeaponID, slot)` for every slot the host has (including sentry gun, energy barrier, sample collector, multitool); start with NoWeapon in hand.
+
+## Phase 5b: guest shots aim right (2026-10-26 17:50, probe v26)
+### Observations (owner)
+- With weapons from `AddEquipmentToInventory`, the guest's shots go in the right direction and hit (impact registered) even when the host is not looking.
+- Projectiles and impacts are visible **only on the host**.
+- Host shoots guest: the host "takes the damage". Guest shoots host: the host takes damage (expected).
+### Derived
+- Projectiles/impact FX are spawned by the host for the forwarded Fire and are not replicated. The guest's own pawn has no weapon references locally (slot variables are not replicated), so its local Fire does nothing visible.
+- "Host takes the damage" when the host shoots the guest is probably the guest's health shown on the host HUD (GetPlayerHud = player 0); to be checked against real Health values.
+### Next (probe v27)
+- Host sends `weap|slot:id,...` to the guest after giving weapons; the guest calls `AddEquipmentToInventory` on its own pawn locally, so its local Fire shows its weapon, projectiles and impacts (damage stays authoritative on the host).
+- Health of every player character logged on change, both sides.

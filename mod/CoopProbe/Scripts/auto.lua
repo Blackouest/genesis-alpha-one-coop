@@ -19,6 +19,22 @@ local function connected_client()
   return sc and safe(function() return sc:IsValid() end, false) and safe(function() return pc.Pawn:IsValid() end, false)
 end
 
+-- health of every player character, logged when it changes (to see who really takes damage)
+local last_health = {}
+local function health_watch(log)
+  for _, ch in ipairs(FindAllOf("Eden_PlayerCharacter_C") or {}) do
+    if ch:IsValid() then
+      local n = safe(function() return ch:GetFName():ToString() end, "?")
+      local h = safe(function() return ch.Health end)
+      if type(h) == "number" and last_health[n] ~= h then
+        local mine = safe(function() return ch:IsLocallyControlled() end, false)
+        log(string.format("health %s%s = %.1f (was %s)", n, mine and " (mine)" or "", h, tostring(last_health[n])))
+        last_health[n] = h
+      end
+    end
+  end
+end
+
 local black_ticks = 0
 -- Several PlayerHudWidget copies can exist (old ones from earlier map loads), so look at all of them:
 -- if ANY FadeOutBorder stays fully black for 3 checks in a row, hide every black one.
@@ -56,6 +72,7 @@ function M.start_host(log, levels)
     ExecuteInGameThread(function()
       if t == 6 then levels.export(log) end
       fade_watch(log)
+      health_watch(log)
       local init = package.loaded["initfix"]
       if init and t > 6 then init.apply(log, "host") end
       local acts = package.loaded["actions"]
@@ -102,6 +119,7 @@ function M.start_client(log, levels, reveal)
         end
       end
       fade_watch(log)
+      if phase == "done" then health_watch(log) end
     end)
     return false
   end)

@@ -48,7 +48,13 @@ function M.install(log)
   local ok2, e2 = pcall(function()
     RegisterHook("/Script/Engine.PlayerController:ClientMessage", function(self, s)
       local msg = sget(s)
-      if msg:sub(1, 5) == "COOP|" then log("channel <- host '" .. msg:sub(6) .. "'") end
+      if msg:sub(1, 5) == "COOP|" then
+        local body = msg:sub(6)
+        log("channel <- host '" .. body .. "'")
+        local list = body:match("^weap|(.*)$")
+        local w = package.loaded["weapons"]
+        if list and w then ExecuteInGameThread(function() w.give_local(log, list) end) end
+      end
     end)
   end)
   log("channel hook ClientMessage -> " .. (ok2 and "ok" or tostring(e2)))

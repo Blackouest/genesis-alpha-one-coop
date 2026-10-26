@@ -52,6 +52,39 @@ function M.give(log)
     end
     safe(function() g.PlayerHud = nil end)
     slots(log, g, "guest after")
+    local ids = {}
+    for _, s in ipairs(SLOTS) do
+      local w = safe(function() return g[s[1]] end)
+      local id = valid(w) and safe(function() return w.WeaponID end) or nil
+      if type(id) == "number" then table.insert(ids, s[2] .. ":" .. id) end
+    end
+    local ch = package.loaded["channel"]
+    local pc = safe(function() return g:GetController() end)
+    if ch and valid(pc) then ch.to_guest(log, pc, "weap|" .. table.concat(ids, ",")) end
   end
+end
+
+function M.give_local(log, list)
+  local me
+  for _, ch in ipairs(FindAllOf("Eden_PlayerCharacter_C") or {}) do
+    if valid(ch) and safe(function() return ch:IsLocallyControlled() end, false) then me = ch end
+  end
+  if not me then log("weap: no local pawn"); return end
+  for pair in list:gmatch("[^,]+") do
+    local slot, id = pair:match("^(%d+):(%-?%d+)$")
+    slot, id = tonumber(slot), tonumber(id)
+    if slot and id then
+      local name = nil
+      for _, s in ipairs(SLOTS) do if s[2] == slot then name = s[1] end end
+      if name and not valid(safe(function() return me[name] end)) then
+        local ok, err = pcall(function() me:AddEquipmentToInventory(id, slot) end)
+        log("local AddEquipmentToInventory(" .. id .. ", " .. name .. ") -> " .. (ok and "ok" or tostring(err)))
+      end
+    end
+  end
+  if not valid(safe(function() return me.CurrentWeaponInUse end)) and valid(safe(function() return me.NoWeapon end)) then
+    safe(function() me.CurrentWeaponInUse = me.NoWeapon end)
+  end
+  slots(log, me, "guest local")
 end
 return M
