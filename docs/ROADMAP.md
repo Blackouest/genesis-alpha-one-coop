@@ -12,8 +12,8 @@ Follows the Co-op Anything phase map. `[x]` = verified by a test run, see NOTES.
 - [x] Guest sees the ship (levels copied, loading screen and fade removed by the mod)
 - [x] Guest movement (character never initialized by the game; the mod initializes it)
 - [ ] Call the game's own player init on the host for the guest (OnLevelLoadedInitializePlayer / InitializePlayer / InitWeaponsFromSave)
-- [ ] Guest-to-host action channel (existing string RPC, e.g. ServerChangeName) and host-to-guest (ClientMessage)
-- [ ] Forward the guest's input actions to the host (InpActEvt_* hooks) and run them on the guest's pawn; handle GetPlayerController(0) assumptions
+- [x] Guest-to-host action channel (existing string RPC, e.g. ServerChangeName) and host-to-guest (ClientMessage)
+- [x] Forward the guest's input actions to the host (InpActEvt_* hooks) and run them on the guest's pawn; handle GetPlayerController(0) assumptions
 - [ ] Door state sync; ship parts missing on the guest
 - [ ] Third-person body for remote players (player mesh is first-person only)
 - [ ] Find what the guest's loading screen waits for (`LoadingScreen_Widget_C`), to replace the workaround
@@ -33,10 +33,26 @@ Follows the Co-op Anything phase map. `[x]` = verified by a test run, see NOTES.
 - [ ] Saves: host only; guest progress rules
 - [ ] DLC: same content on both sides?
 
+### Player state (in progress)
+- [x] Guest weapons, aim and real damage on the host
+- [x] Guest sees its own shots and impacts (local PlayerShootsWeapon)
+- [x] Guest health bar and hit feedback (shake, red flash)
+- [x] Guest death: revive, can move and take damage again
+- [ ] Keep the guest's hints, death and promotion screens off the host and show them on the guest (v34 in test)
+- [ ] Hold-to-fire for automatic weapons on the guest
+- [ ] Slot-2 weapon visible on the host
+- [ ] Lockers, screens, PDA and map (builder) for the guest
+- [ ] Ship colours identical on both sides
+
+### Death rules (owner's choice)
+- [ ] Original rule for both players: a death costs a clone / crew member, and the player comes back as that crew member
+- [ ] With two players and one clone left: a player who dies waits; as soon as a new clone is created, that player can respawn
+- [ ] Game over only when no clone is left for a dead player and the other player is dead too (to confirm in play)
+
 ## Phase 6: QA
 - [ ] Bot-driven tests with two real game clients (coop-anything tools: chaos, flight, bots)
 
 ## Phase 7: ship
 - [ ] Steam relay (Spacewar) or other NAT-friendly transport. The Epic build has no steam_api64.dll.
-- [ ] One-click host and join UI
+- [ ] Two buttons in the game's main menu: "Host a co-op game" and "Join a co-op game" (owner's request), replacing F9/F8
 - [ ] Install as an add-on into the Epic install so DLC still works

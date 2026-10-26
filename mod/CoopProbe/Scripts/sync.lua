@@ -94,8 +94,11 @@ function M.install_host(log)
         -- guest pawn on the host
         safe(function() o.PlayerDamagePostProcess.bEnabled = false end)
         host_fix(log, why)
-        M.fixes = (M.fixes or 0) + 1
-        if M.fixes <= 6 then log("sync: host undid guest feedback after " .. fname) end
+        M.last_evt = os.time(); M.last_why = why
+        if why ~= "damage" then M.last_death = os.time() end
+        M.fixes = M.fixes or {}
+        M.fixes[fname] = (M.fixes[fname] or 0) + 1
+        if M.fixes[fname] <= 2 then log("sync: host undid guest feedback after " .. fname) end
       end)
     end)
     log("sync: hook " .. fname .. " -> " .. (ok and "ok" or tostring(err)))
@@ -105,6 +108,38 @@ function M.install_host(log)
   on("ReceiveRadialDamage", "damage")
   on("PlayerDies", "death")
   on("OnPromotionFinished", "promotion")
+  -- host HUD: hints and the promotion panel that the guest's pawn put there
+  local hud = safe(function() return host.PlayerHud end)
+  local hpath = valid(hud) and safe(function() return hud:GetClass():GetFullName():match("^%S+%s+(.+)$") end)
+  local function host_busy() return safe(function() return host.IsDead or host.IsInPromotion end, false) end
+  if hpath then
+    local ok1 = pcall(function()
+      RegisterHook(hpath .. ":ShowTutorialWarning", function(ctx, w)
+        if not M.last_evt or os.time() - M.last_evt > 3 or host_busy() then return end
+        local v = safe(function() return w:get() end)
+        local h = safe(function() return ctx:get() end)
+        pcall(function() h:HideTutorialWarning() end)
+        local _, guest = players()
+        local gpc = guest and safe(function() return guest:GetController() end)
+        local ch = package.loaded["channel"]
+        if ch and valid(gpc) and v ~= nil then ch.to_guest(log, gpc, "warn|" .. tostring(v)) end
+        log("sync: guest hint " .. tostring(v) .. " moved from the host HUD to the guest")
+      end)
+    end)
+    local ok2 = pcall(function()
+      RegisterHook(hpath .. ":StartShowPromotion", function(ctx)
+        if not M.last_death or os.time() - M.last_death > 20 or host_busy() then return end
+        local h = safe(function() return ctx:get() end)
+        for _, d in ipairs({ 0, 500, 1500, 3000, 5000, 8000 }) do
+          ExecuteWithDelay(d + 1, function() ExecuteInGameThread(function()
+            pcall(function() h.PlayerHudWriteCrewStats:SetVisibility(2) end)
+          end) end)
+        end
+        log("sync: guest promotion panel hidden on the host")
+      end)
+    end)
+    log("sync: hud hooks ShowTutorialWarning=" .. tostring(ok1) .. " StartShowPromotion=" .. tostring(ok2))
+  end
 end
 
 -- host, every tick of the auto loop
@@ -176,6 +211,14 @@ function M.on_host_message(log, body)
     for v in list:gmatch("[^,]+") do table.insert(t, tonumber(v)) end
     local ok, err = pcall(function() ps.Ammunition = t end)
     log("sync: ammo (" .. #t .. " entries) -> " .. (ok and "set" or tostring(err)) .. ", local now " .. ammo_list(ps))
+    return true
+  end
+  local wv = body:match("^warn|(.+)$")
+  if wv then
+    local p = me(); local hud = p and safe(function() return p.PlayerHud end)
+    local ok, err = false, "no hud"
+    if valid(hud) then ok, err = pcall(function() hud:ShowTutorialWarning(tonumber(wv) or wv) end) end
+    log("sync: hint " .. wv .. " shown: " .. (ok and "ok" or tostring(err)))
     return true
   end
   if body == "dead|" or body == "revive|" then
