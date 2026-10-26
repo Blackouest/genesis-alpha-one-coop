@@ -39,6 +39,43 @@ local function slots(log, ch, label)
   log(label .. " " .. nm(ch) .. ": " .. table.concat(parts, " "))
 end
 
+local function errtext(e)
+  if type(e) == "function" then
+    local ok, m = pcall(e)
+    return "fn-error -> " .. tostring(ok) .. " " .. tostring(m)
+  end
+  return tostring(e)
+end
+
+local function params(log, cls, fname)
+  local found = false
+  safe(function()
+    cls:ForEachFunction(function(fn)
+      if fn:GetFName():ToString() == fname then
+        found = true
+        local ps = {}
+        fn:ForEachProperty(function(p)
+          table.insert(ps, p:GetFName():ToString() .. ":" .. safe(function() return p:GetClass():GetFName():ToString() end, "?"))
+        end)
+        log("params " .. nm(cls) .. ":" .. fname .. " (" .. table.concat(ps, ", ") .. ")")
+      end
+    end)
+  end)
+  if not found then log("params " .. nm(cls) .. ":" .. fname .. " not found") end
+end
+
+-- summon fallback: the CheatManager's summon spawns next to the host's pawn; adopt the newest actor of that class
+local function summon(log, host_pc, cls)
+  local before = {}
+  for _, a in ipairs(FindAllOf(nm(cls)) or {}) do before[nm(a)] = true end
+  local ksl = StaticFindObject("/Script/Engine.Default__KismetSystemLibrary")
+  local ok = pcall(function() ksl:ExecuteConsoleCommand(host_pc, "summon " .. nm(cls), host_pc) end)
+  for _, a in ipairs(FindAllOf(nm(cls)) or {}) do
+    if valid(a) and not before[nm(a)] then return a end
+  end
+  log("summon " .. nm(cls) .. " exec=" .. tostring(ok) .. " -> no new actor")
+end
+
 function M.give(log)
   local host, guests = pawns()
   if not host then log("weapons: no host pawn"); return end
@@ -51,7 +88,10 @@ function M.give(log)
     slots(log, g, "guest before")
     -- 1) the game's own init, with the real error text this time
     local ok, err = xpcall(function() g:InitWeaponsFromSave() end, function(e) local tb = (debug and debug.traceback) and debug.traceback() or ""; return tostring(e) .. " | " .. tb end)
-    log("InitWeaponsFromSave -> " .. (ok and "ok" or ("ERROR " .. tostring(err))))
+    log("InitWeaponsFromSave -> " .. (ok and "ok" or ("ERROR " .. errtext(err))))
+    params(log, g:GetClass(), "InitWeaponsFromSave")
+    params(log, StaticFindObject("/Script/Engine.GameplayStatics"), "BeginDeferredActorSpawnFromClass")
+    params(log, StaticFindObject("/Script/Engine.GameplayStatics"), "FinishSpawningActor")
     slots(log, g, "guest after init")
     -- 2) if still empty, spawn copies of the host's weapon classes for the guest
     local gs = StaticFindObject("/Script/Engine.Default__GameplayStatics")
@@ -67,6 +107,10 @@ function M.give(log)
             a = gs:BeginDeferredActorSpawnFromClass(g, cls, xf, 1, g)
             if valid(a) then a = gs:FinishSpawningActor(a, xf) end
           end)
+          if not valid(a) then
+            log("deferred spawn " .. s .. " failed: " .. errtext(e2) .. "; trying summon")
+            a = summon(log, host:GetController() or FindFirstOf("PlayerController"), cls)
+          end
           if valid(a) then
             safe(function() a:SetOwner(g) end)
             safe(function() a.Instigator = g end)

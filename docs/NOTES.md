@@ -373,3 +373,12 @@
 - F2 twice on the host now runs `weapons.give`: dump the host's slot weapons with class, attach parent/socket, owner, hidden; call `InitWeaponsFromSave` on the guest pawn with xpcall to get the real error; if slots stay empty, spawn the host's weapon classes for the guest (`BeginDeferredActorSpawnFromClass` + `FinishSpawningActor`, owner/instigator = guest pawn), attach them to the guest's component of the same name and socket, fill WeaponSlot1/2, NoWeapon, Multitool, CurrentWeaponInUse=NoWeapon.
 - Set the guest pawn's `PlayerHud` to none on the host so forwarded actions stop driving the host's HUD.
 - Test protocol: do not touch the host window while the guest presses keys (to separate guest effects from host input).
+
+## Phase 4f: HUD detached; weapon calls fail (2026-10-26 14:52, probe v23)
+### Observations
+- Host's weapons: Pistol, PowerShotgun, NoWeapon, Multikit, all attached to the host pawn's `Mesh2P` at socket `HandRight`, no owner; only the current one (NoWeapon) is not hidden.
+- Guest pawn on the host: all slots none, PlayerHud = the host's HUD before, set to none by the mod.
+- `InitWeaponsFromSave()` and `GameplayStatics.BeginDeferredActorSpawnFromClass(...)` both failed in pcall with an error value that is a Lua function (`function: 00000189BE007250`, same value for all), no text.
+- Owner: the guest still has no weapon, **but the host's HUD no longer pops up** when the guest switches weapons (PlayerHud=none on the guest pawn works).
+### Next (probe v23b)
+- Log the parameter list of InitWeaponsFromSave, BeginDeferredActorSpawnFromClass and FinishSpawningActor; call the error value to get its text; fall back to the CheatManager `summon <class>` and adopt the new actor.
