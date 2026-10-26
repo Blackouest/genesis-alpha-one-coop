@@ -437,3 +437,16 @@
 - Impersonation hooks disabled by default (`noimpersonate.txt`), they did nothing and fire on very hot functions.
 ### Proposed next step
 - Stop guessing from the outside: extract the player Blueprints from the pak (repak, pak v8 unencrypted index) and read their bytecode (kismet-analyzer) to see exactly how Fire, Use, lockers, PDA, damage and builder mode work, then sync each feature deliberately (guest runs UI and local visuals, host runs world effects, messages in between).
+
+## Phase 5a: reading the game's Blueprints (2026-10-26)
+### Tools (in tools/, ours, MIT; no game data in the repo)
+- `pakread.py`: minimal reader for UE4 pak v8 (this pak: version 8, 25,288 files, unencrypted index, zlib blocks with unnamed compression method). Run on the owner's PC against the test copy; extracts only the requested Blueprints into `<test dir>/_extract` (never published).
+- `kismet.py`: reads cooked 4.23 packages (name/import/export maps) and disassembles Kismet bytecode to pseudo-code. The script is located from the end of each function export (BytecodeSize, StorageSize, ..., EX_EndOfScript, then FunctionFlags/EventGraph fields), candidates validated by a clean decode. All 724 extracted Blueprints decode without error (kismet-analyzer needs .NET and repak needs crates.io, both unreachable from this session).
+### Findings
+- `Eden_PlayerCharacter`: 360 functions, ubergraph of 32,819 bytes on disk. `InitWeaponsFromSave(WeaponSaveData)` just loops and calls **`AddEquipmentToInventory(WeaponID, Slot)`**, which spawns the weapon class from `TerminalLibrary.GetWeaponInfo`, attaches it to `Mesh2P` at the weapon's `PlayerSocket`, hides it, sets **`WeaponOwner = self`**, runs `MultiInitializeWeapon(ID)` and `PlayerHud.UpdateInventoryWeapons()`. Slots: 0 NoWeapon, 1 WeaponSlot1, 2 WeaponSlot2, 3 SentryGun, 4 EnergyBarrier, 5 SampleCollector, 6 MultiTool.
+- `BP_Weapon_CLASS.ShootProjectile` aims with `WeaponOwner...GetControlRotation()`. Our v24 weapons had no WeaponOwner, hence projectiles flying the wrong way.
+- `UseInteractionObject` does nothing unless `CurrentFocusedPlayerInteraction` (set by `CheckLineOfSightForInteractions`) is valid; then it switches on the interaction type (EPlayerInteractions).
+- `PlayerLibrary.GetPlayerHud` returns `GetPlayerCharacter(0).PlayerHud` (or the builder's owner's). Damage events (`ReceivePointDamage` ...) on any player character update `GetPlayerHud(self).UpdatePlayerHealth(Health, HealthMax)`, i.e. the **host's** HUD on the host: the "host loses health" the owner saw is most likely the host HUD showing the guest's health.
+- Player-0 lookups per asset: BuilderCharacter 21, FirstPersonGameMode 17, Eden_PlayerCharacter 16, Genesis_GameInstance 10, BP_Weapon_CLASS 6, PlayerHudWidget 5, plus several weapons and terminals.
+### Next (probe v26)
+- Guest weapons through `AddEquipmentToInventory(hostWeapon.WeaponID, slot)` for every slot the host has (including sentry gun, energy barrier, sample collector, multitool); start with NoWeapon in hand.
