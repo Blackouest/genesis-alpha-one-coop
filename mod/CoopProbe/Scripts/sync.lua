@@ -59,7 +59,11 @@ function M.death_tick(log, host, guest, pc)
       local ch = package.loaded["channel"]; if ch then ch.to_guest(log, pc, "revive|") end
     end
   else
-    if M.dead_ticks > 0 then log("sync: guest alive again by itself (health=" .. tostring(h) .. ")") end
+    if M.dead_ticks > 0 then
+      local r = pcall(function() guest.Temp_bool_IsClosed_Variable_6 = false end)
+      log("sync: guest alive again by itself (health=" .. tostring(h) .. "), death gate reopened=" .. tostring(r)
+        .. " IsClosed_6=" .. tostring(safe(function() return guest.Temp_bool_IsClosed_Variable_6 end, "unreadable")))
+    end
     M.dead_ticks = 0
   end
 end
@@ -87,16 +91,19 @@ end
 -- The game's promotion camera (BP_PromotedCaptain) ends by calling GetPlayerCharacter(0).OnPromotionFinished,
 -- i.e. on the HOST's pawn. For a guest death, remove the camera before that and finish the promotion on the guest pawn.
 function M.watch_promotion(log, guest)
+  if M.promo_watching then return end
+  M.promo_watching, M.promo_cam_handled = true, false
   local n = 0
   LoopAsync(200, function()
     n = n + 1
-    if n > 100 then log("sync: no promotion camera within 20 s"); return true end
-    local done = false
+    if M.promo_cam_handled then M.promo_watching = false; return true end
+    if n > 100 then log("sync: no promotion camera within 20 s"); M.promo_watching = false; return true end
     ExecuteInGameThread(function()
+      if M.promo_cam_handled then return end
       local cams = FindAllOf("BP_PromotedCaptain_C") or {}
       for _, cam in ipairs(cams) do
-        if valid(cam) then
-          done = true
+        if valid(cam) and not M.promo_cam_handled then
+          M.promo_cam_handled = true
           local crew = safe(function() return cam.CrewCharacter end)
           log("sync: promotion camera for the guest found, crew=" .. tostring(valid(crew) and crew:GetFName():ToString()))
           ExecuteWithDelay(3000, function() ExecuteInGameThread(function()
