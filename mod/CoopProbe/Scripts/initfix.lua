@@ -87,13 +87,8 @@ function M.press(log)
     return
   end
   if _G.COOP_ROLE == "host" then
-    for _, ch in ipairs(chars) do
-      if not safe(function() return ch:IsLocallyControlled() end, true) then
-        local ok, err = pcall(function() ch:InitWeaponsFromSave() end)
-        log("host: InitWeaponsFromSave on guest " .. nm(ch) .. " -> " .. (ok and "ok" or tostring(err)))
-        gear(log, ch)
-      end
-    end
+    local w = package.loaded["weapons"]
+    if w then w.give(log) end
     return
   end
   -- reference values from an initialized character if this world has one

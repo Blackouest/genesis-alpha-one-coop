@@ -367,3 +367,9 @@
 ### Derived
 - Weapons for the guest must exist on the host: spawn the four weapon actors for the guest (same classes) owned by its pawn, or make the game's init run with the guest as "player 0".
 - Forwarded actions need an impersonation window: while the host runs a guest action, player-0 lookups (and the HUD reference) must resolve to the guest.
+
+## Phase 4e: giving the guest its own weapons (2026-10-26, probe v23)
+### Plan
+- F2 twice on the host now runs `weapons.give`: dump the host's slot weapons with class, attach parent/socket, owner, hidden; call `InitWeaponsFromSave` on the guest pawn with xpcall to get the real error; if slots stay empty, spawn the host's weapon classes for the guest (`BeginDeferredActorSpawnFromClass` + `FinishSpawningActor`, owner/instigator = guest pawn), attach them to the guest's component of the same name and socket, fill WeaponSlot1/2, NoWeapon, Multitool, CurrentWeaponInUse=NoWeapon.
+- Set the guest pawn's `PlayerHud` to none on the host so forwarded actions stop driving the host's HUD.
+- Test protocol: do not touch the host window while the guest presses keys (to separate guest effects from host input).

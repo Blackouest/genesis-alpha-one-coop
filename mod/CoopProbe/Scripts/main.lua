@@ -153,6 +153,8 @@ RegisterKeyBind(Key.F6, function()
     if ROLE == "client" then channel.to_host(log, "ping " .. os.date("%H:%M:%S")) end
   end)
 end)
+local weapons = require("weapons")
+log("loaded v23: F2 x2 on the host gives the guest its own weapons and detaches it from the host HUD")
 log("loaded v22: F2 = player + gear dump; F2 again on the host = InitWeaponsFromSave for the guest")
 log("loaded v21: guest actions forwarded to the host (act|<InpActEvt>), action hooks auto-installed")
 log("loaded v20: auto init, F6 = hook input actions + guest pings host")
