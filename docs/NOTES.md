@@ -394,3 +394,12 @@
 - Owner: guest still unarmed; host HUD no longer reacts to guest weapon keys; nothing appears near the host.
 ### Next (probe v23d)
 - Log `debug.getinfo` of the error function, control calls (K2_GetActorLocation, IsLocallyControlled) in the same context, the type of `g.InitWeaponsFromSave`, and a log line on entering `params`.
+
+## Phase 4h: what fails is parameter marshalling (2026-10-26 15:14, probe v23d)
+### Observations
+- Control calls in the same game-thread context succeed: `K2_GetActorLocation`, `IsLocallyControlled`. `g.InitWeaponsFromSave` resolves (userdata).
+- `InitWeaponsFromSave()` and `BeginDeferredActorSpawnFromClass(g, cls, xf, 1, g)` fail with an error value that is a C function (`debug.getinfo`: what=C, src=[C]) -> raised inside UE4SS's C++ call path, not by the game.
+- `params()`: ForEachFunction finds both functions (the "not found" line is not printed) but `UFunction:ForEachProperty` errors the same odd way (as in v7), so parameter lists cannot be read with UE4SS 3.0.1 Lua.
+- `summon <class>` runs (CheatManager enabled by UE4SS) but spawns nothing: unknown whether the cheat is stubbed in this shipping build.
+### Next (probe v23e)
+- InitWeaponsFromSave with (), (nil), (false), (nil,nil), (0); BeginDeferredActorSpawnFromClass with the class from StaticFindObject, without owner, with 3 args, with the host PC as world context.

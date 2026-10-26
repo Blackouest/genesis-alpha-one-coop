@@ -89,8 +89,18 @@ function M.give(log)
   for _, g in ipairs(guests) do
     slots(log, g, "guest before")
     -- 1) the game's own init, with the real error text this time
-    local ok, err = xpcall(function() g:InitWeaponsFromSave() end, function(e) local tb = (debug and debug.traceback) and debug.traceback() or ""; return tostring(e) .. " | " .. tb end)
-    log("InitWeaponsFromSave -> " .. (ok and "ok" or ("ERROR " .. errtext(err))))
+    local variants = {
+      { "()", function() g:InitWeaponsFromSave() end },
+      { "(nil)", function() g:InitWeaponsFromSave(nil) end },
+      { "(false)", function() g:InitWeaponsFromSave(false) end },
+      { "(nil,nil)", function() g:InitWeaponsFromSave(nil, nil) end },
+      { "(0)", function() g:InitWeaponsFromSave(0) end },
+    }
+    for _, v in ipairs(variants) do
+      local okv, ev = pcall(v[2])
+      log("InitWeaponsFromSave" .. v[1] .. " -> " .. (okv and "OK" or errtext(ev)))
+      if okv then break end
+    end
     -- control calls in the same context
     log("control K2_GetActorLocation -> " .. tostring(pcall(function() return g:K2_GetActorLocation() end)))
     log("control IsLocallyControlled -> " .. tostring(pcall(function() return g:IsLocallyControlled() end)))
@@ -110,10 +120,27 @@ function M.give(log)
         if valid(hw) then
           local cls = hw:GetClass()
           local a = nil
-          local ok2, e2 = pcall(function()
-            a = gs:BeginDeferredActorSpawnFromClass(g, cls, xf, 1, g)
-            if valid(a) then a = gs:FinishSpawningActor(a, xf) end
-          end)
+          local path = safe(function() return cls:GetFullName():match("^%S+%s+(.+)$") end)
+          local cls2 = path and StaticFindObject(path)
+          local tries = {
+            { "A cls,xf,1,owner", function() return gs:BeginDeferredActorSpawnFromClass(g, cls, xf, 1, g) end },
+            { "B staticfind cls", function() return gs:BeginDeferredActorSpawnFromClass(g, cls2, xf, 1, g) end },
+            { "C no owner", function() return gs:BeginDeferredActorSpawnFromClass(g, cls2, xf, 1, nil) end },
+            { "D 3 args", function() return gs:BeginDeferredActorSpawnFromClass(g, cls2, xf) end },
+            { "E world ctx host pc", function() return gs:BeginDeferredActorSpawnFromClass(FindFirstOf("PlayerController"), cls2, xf, 0, g) end },
+          }
+          local e2 = nil
+          for _, tr in ipairs(tries) do
+            local okt, res = pcall(tr[2])
+            log("  spawn try " .. tr[1] .. " -> " .. (okt and ("returned " .. (valid(res) and nm(res) or "nil/invalid")) or errtext(res)))
+            if okt and valid(res) then
+              local okf, fin = pcall(function() return gs:FinishSpawningActor(res, xf) end)
+              log("  FinishSpawningActor -> " .. (okf and (valid(fin) and nm(fin) or "nil") or errtext(fin)))
+              a = (okf and valid(fin)) and fin or res
+              break
+            end
+            e2 = res
+          end
           if not valid(a) then
             log("deferred spawn " .. s .. " failed: " .. errtext(e2) .. "; trying summon")
             a = summon(log, host:GetController() or FindFirstOf("PlayerController"), cls)
