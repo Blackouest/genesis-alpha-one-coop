@@ -382,3 +382,6 @@
 - Owner: the guest still has no weapon, **but the host's HUD no longer pops up** when the guest switches weapons (PlayerHud=none on the guest pawn works).
 ### Next (probe v23b)
 - Log the parameter list of InitWeaponsFromSave, BeginDeferredActorSpawnFromClass and FinishSpawningActor; call the error value to get its text; fall back to the CheatManager `summon <class>` and adopt the new actor.
+- 2026-10-26 15:03 run: F2 never registered on the host (no dump, no weapons.give), so nothing was tested; the host HUD popped up again because PlayerHud was not cleared in that run (consistent with the previous result).
+- Owner: in this game weapons cannot be dropped on the floor; they are stored in and taken from lockers. Possible later route: give the guest weapons through the locker flow.
+- v23c: the host's auto flow calls `weapons.give` once a guest pawn exists and is initialized (no key needed).

@@ -60,6 +60,19 @@ function M.start_host(log, levels)
       if init and t > 6 then init.apply(log, "host") end
       local acts = package.loaded["actions"]
       if acts and t > 6 and not acts.installed then acts.install(log) end
+      -- once a guest pawn exists and has been initialized, give it weapons and detach it from the host HUD
+      local w = package.loaded["weapons"]
+      if w and not M.gave and t > 8 then
+        for _, ch in ipairs(FindAllOf("Eden_PlayerCharacter_C") or {}) do
+          if ch:IsValid() and not safe(function() return ch:IsLocallyControlled() end, true)
+             and safe(function() return ch.Role end, 0) == 3 and safe(function() return ch.IsPlayerInitialized end, false) then
+            M.gave = true
+            log("auto: guest pawn ready, giving weapons")
+            w.give(log)
+            break
+          end
+        end
+      end
     end)
     return false
   end)
