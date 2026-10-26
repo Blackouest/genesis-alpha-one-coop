@@ -385,3 +385,12 @@
 - 2026-10-26 15:03 run: F2 never registered on the host (no dump, no weapons.give), so nothing was tested; the host HUD popped up again because PlayerHud was not cleared in that run (consistent with the previous result).
 - Owner: in this game weapons cannot be dropped on the floor; they are stored in and taken from lockers. Possible later route: give the guest weapons through the locker flow.
 - v23c: the host's auto flow calls `weapons.give` once a guest pawn exists and is initialized (no key needed).
+
+## Phase 4g: weapon spawn attempts all fail the same odd way (2026-10-26 15:08, probe v23c)
+### Observations
+- Auto give ran 15:08:03 after auto-init. `InitWeaponsFromSave()` and `GameplayStatics.BeginDeferredActorSpawnFromClass` fail in pcall/xpcall with an error *value that is a Lua function* (same address for every call); calling it errors again with itself; the xpcall message handler output never shows. UE4SS.log has no error text for these calls.
+- The `params(...)` diagnostics placed right after produced no log line at all (not even "not found").
+- `summon BP_WeaponPistol_C` was executed (the console hook shows it ten times: once per world context/listener) but no new BP_WeaponPistol_C appeared.
+- Owner: guest still unarmed; host HUD no longer reacts to guest weapon keys; nothing appears near the host.
+### Next (probe v23d)
+- Log `debug.getinfo` of the error function, control calls (K2_GetActorLocation, IsLocallyControlled) in the same context, the type of `g.InitWeaponsFromSave`, and a log line on entering `params`.

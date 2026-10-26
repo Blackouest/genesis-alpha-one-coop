@@ -41,13 +41,15 @@ end
 
 local function errtext(e)
   if type(e) == "function" then
-    local ok, m = pcall(e)
-    return "fn-error -> " .. tostring(ok) .. " " .. tostring(m)
+    local info = (debug and debug.getinfo) and debug.getinfo(e, "S") or nil
+    local where = info and (tostring(info.what) .. " " .. tostring(info.short_src) .. ":" .. tostring(info.linedefined)) or "no debug info"
+    return "error value is a function (" .. where .. ")"
   end
   return tostring(e)
 end
 
 local function params(log, cls, fname)
+  log("params: looking for " .. tostring(fname) .. " in " .. nm(cls))
   local found = false
   safe(function()
     cls:ForEachFunction(function(fn)
@@ -89,6 +91,11 @@ function M.give(log)
     -- 1) the game's own init, with the real error text this time
     local ok, err = xpcall(function() g:InitWeaponsFromSave() end, function(e) local tb = (debug and debug.traceback) and debug.traceback() or ""; return tostring(e) .. " | " .. tb end)
     log("InitWeaponsFromSave -> " .. (ok and "ok" or ("ERROR " .. errtext(err))))
+    -- control calls in the same context
+    log("control K2_GetActorLocation -> " .. tostring(pcall(function() return g:K2_GetActorLocation() end)))
+    log("control IsLocallyControlled -> " .. tostring(pcall(function() return g:IsLocallyControlled() end)))
+    local fnref = safe(function() return g.InitWeaponsFromSave end)
+    log("InitWeaponsFromSave lookup type=" .. type(fnref))
     params(log, g:GetClass(), "InitWeaponsFromSave")
     params(log, StaticFindObject("/Script/Engine.GameplayStatics"), "BeginDeferredActorSpawnFromClass")
     params(log, StaticFindObject("/Script/Engine.GameplayStatics"), "FinishSpawningActor")
