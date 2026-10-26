@@ -60,6 +60,53 @@ function M.death_tick(log, host, guest, pc)
   end
 end
 
+-- host: the guest pawn's Blueprint feedback (camera shake, red post-process, death fade, promotion screen)
+-- targets player 0, i.e. the host. Undo it on the host right after the game runs it.
+local function host_fix(log, why)
+  local host = players()
+  if not valid(host) then return end
+  local pc = safe(function() return host:GetController() end)
+  local pcm = valid(pc) and safe(function() return pc.PlayerCameraManager end)
+  if valid(pcm) then pcall(function() pcm:StopAllCameraShakes(true) end) end
+  local hud = safe(function() return host.PlayerHud end)
+  if why == "death" or why == "promotion" then
+    for _, d in ipairs({ 100, 700, 1500, 3000, 4500 }) do
+      ExecuteWithDelay(d, function() ExecuteInGameThread(function()
+        if valid(hud) then pcall(function() hud:StartFadeIn() end) end
+        if why == "promotion" and valid(hud) then pcall(function() hud:OnPromotionEnded() end) end
+        if valid(pc) then pcall(function() pc:SetViewTargetWithBlend(host, 0, 0, 0, false) end) end
+      end) end)
+    end
+  end
+end
+
+function M.install_host(log)
+  if M.host_hooks then return end
+  local host = players()
+  local path = host and safe(function() return host:GetClass():GetFullName():match("^%S+%s+(.+)$") end)
+  if not path then return end
+  M.host_hooks = true
+  local function on(fname, why)
+    local ok, err = pcall(function()
+      RegisterHook(path .. ":" .. fname, function(ctx)
+        local o = safe(function() return ctx:get() end)
+        if not valid(o) or safe(function() return o:IsLocallyControlled() end, true) then return end
+        -- guest pawn on the host
+        safe(function() o.PlayerDamagePostProcess.bEnabled = false end)
+        host_fix(log, why)
+        M.fixes = (M.fixes or 0) + 1
+        if M.fixes <= 6 then log("sync: host undid guest feedback after " .. fname) end
+      end)
+    end)
+    log("sync: hook " .. fname .. " -> " .. (ok and "ok" or tostring(err)))
+  end
+  on("ReceiveDamage", "damage")
+  on("ReceivePointDamage", "damage")
+  on("ReceiveRadialDamage", "damage")
+  on("PlayerDies", "death")
+  on("OnPromotionFinished", "promotion")
+end
+
 -- host, every tick of the auto loop
 function M.host_tick(log)
   local ch = package.loaded["channel"]; if not ch then return end
@@ -69,6 +116,8 @@ function M.host_tick(log)
   if not valid(pc) then return end
   local a = ammo_list(safe(function() return host.PlayerState end))
   if a ~= "" and a ~= M.last_ammo then ch.to_guest(log, pc, "ammo|" .. a); M.last_ammo = a end
+  M.install_host(log)
+  safe(function() guest.PlayerDamagePostProcess.bEnabled = false end)
   M.death_tick(log, host, guest, pc)
   local h, mx = safe(function() return guest.Health end), safe(function() return guest.HealthMax end)
   local hp = tostring(h) .. "|" .. tostring(mx)
@@ -114,6 +163,11 @@ end
 
 -- guest, on a message from the host
 function M.on_host_message(log, body)
+  for _, o in ipairs(FindAllOf("Eden_PlayerCharacter_C") or {}) do
+    if valid(o) and not safe(function() return o:IsLocallyControlled() end, true) then
+      safe(function() o.PlayerDamagePostProcess.bEnabled = false end)
+    end
+  end
   local list = body:match("^ammo|(.*)$")
   if list then
     local p = me(); local ps = p and safe(function() return p.PlayerState end)
