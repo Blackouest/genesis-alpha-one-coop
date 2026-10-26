@@ -1,7 +1,7 @@
 -- Experiment: copy the host's dynamic streaming levels (ship modules) to the client.
 -- Same-PC only: goes through Mods/CoopProbe/levels.txt. A real mod will send this over the network.
 local M = {}
-local FILE = "Mods/CoopProbe/levels.txt"
+local FILE = COOP_BASE .. "levels.txt"
 local function safe(f, d) local ok, v = pcall(f); if ok then return v end; return d end
 
 local function quat_to_rot(q)  -- same math as FQuat::Rotator

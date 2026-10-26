@@ -1,6 +1,9 @@
 -- CoopProbe: read-only checks for co-op feasibility (Genesis Alpha One, UE 4.23)
 local ROLE = nil  -- "host" or "client", fixed on first F9/F8 in this instance
-local LOGFILE = "Mods/CoopProbe/probe_" .. os.date("%H%M%S") .. ".log"  -- one file per game instance
+-- UE4SS 3.0.1 keeps mods in <Win64>/Mods, newer builds in <Win64>/ue4ss/Mods
+local function exists(f) local h = io.open(f, "r"); if h then h:close(); return true end; return false end
+COOP_BASE = exists("ue4ss/Mods/CoopProbe/Scripts/main.lua") and "ue4ss/Mods/CoopProbe/" or "Mods/CoopProbe/"
+local LOGFILE = COOP_BASE .. "probe_" .. os.date("%H%M%S") .. ".log"  -- one file per game instance
 local function log(s)
   local line = "[CoopProbe] " .. tostring(s)
   print(line .. "\n")
@@ -108,7 +111,7 @@ RegisterKeyBind(Key.F8, function()
   if package.loaded["hooks"] then package.loaded["hooks"].armed = true end
   ExecuteInGameThread(function()
     local addr = "127.0.0.1"
-    local f = io.open("Mods/CoopProbe/host.txt", "r")
+    local f = io.open(COOP_BASE .. "host.txt", "r")
     if f then local l = f:read("*l"); f:close(); if l and #l > 0 then addr = l:gsub("%s+", "") end end
     use_ip_driver()
     console("open " .. addr)
@@ -154,6 +157,7 @@ RegisterKeyBind(Key.F6, function()
   end)
 end)
 local weapons = require("weapons")
+log("loaded v24 (UE4SS " .. COOP_BASE .. "): same probe on the newer UE4SS")
 log("loaded v23e: spawn and init variants. weapons given automatically on the host. F2 x2 on the host gives the guest its own weapons and detaches it from the host HUD")
 log("loaded v22: F2 = player + gear dump; F2 again on the host = InitWeaponsFromSave for the guest")
 log("loaded v21: guest actions forwarded to the host (act|<InpActEvt>), action hooks auto-installed")

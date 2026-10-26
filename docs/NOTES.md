@@ -403,3 +403,13 @@
 - `summon <class>` runs (CheatManager enabled by UE4SS) but spawns nothing: unknown whether the cheat is stubbed in this shipping build.
 ### Next (probe v23e)
 - InitWeaponsFromSave with (), (nil), (false), (nil,nil), (0); BeginDeferredActorSpawnFromClass with the class from StaticFindObject, without owner, with 3 args, with the host PC as world context.
+
+## Phase 4i: all call variants fail on UE4SS 3.0.1; moving to UE4SS experimental (2026-10-26)
+### Observations (probe v23e, 15:17)
+- `InitWeaponsFromSave` with (), (nil), (false), (nil,nil), (0): all fail with the C-function error value.
+- `BeginDeferredActorSpawnFromClass`: class from GetClass or StaticFindObject, with/without owner, 3 args, host PC as world context: all fail the same way. `summon` spawns nothing.
+- Calls that work in the same context: K2_GetActorLocation, IsLocallyControlled, SetMovementMode, Activate, LoadLevelInstance (static, on the guest), Blueprint `InpActEvt_*` events.
+### Decision
+- Try UE4SS experimental: owner downloaded `UE4SS_v3.0.1-1183-gcdbc0b66.zip` from https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest, SHA-256 `e4a47e23e2eeb8379c4fc388d1b1686f01c6c5930d84a2ee4a6a9574b274e681` (zip test OK; not compared with GitHub's digest from this session).
+- New layout: `dwmapi.dll` next to the exe, everything else in `<Win64>/ue4ss/` (UE4SS.dll, UE4SS-settings.ini, Mods with mods.txt **and** mods.json). Same settings changes as before (Major 4, Minor 23, consoles on, dx11). Old 3.0.1 files moved to `<Win64>/_ue4ss_3.0.1_backup/`.
+- Probe v24: file paths go through `COOP_BASE` (ue4ss/Mods/CoopProbe/ or Mods/CoopProbe/), so the same scripts run on both UE4SS layouts.

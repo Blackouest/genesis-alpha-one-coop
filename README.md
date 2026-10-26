@@ -41,10 +41,12 @@ Other builds (Steam, GOG, Game Pass) are untested.
 
 1. Copy your game install to a separate folder. Don't mod your real install. Note that the copy still uses
    your real save folder `%LOCALAPPDATA%\Genesis_EGS\Saved`, so back it up first.
-2. Install [UE4SS v3.0.1](https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/v3.0.1)
-   (`UE4SS_v3.0.1.zip`, SHA-256 `4b47d4bceddd2f561a4e395bfa00924ccfc945af576a2d0c613e6537846c57ec`)
-   into `Genesis_EGS/Binaries/Win64/` of the copy. In `UE4SS-settings.ini` set `MajorVersion = 4`, `MinorVersion = 23`.
-3. Copy `mod/CoopProbe` to `Genesis_EGS/Binaries/Win64/Mods/CoopProbe` and add `CoopProbe : 1` to `Mods/mods.txt`.
+2. Install UE4SS into `Genesis_EGS/Binaries/Win64/` of the copy. Tested: [v3.0.1](https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/v3.0.1)
+   (`UE4SS_v3.0.1.zip`, SHA-256 `4b47d4bceddd2f561a4e395bfa00924ccfc945af576a2d0c613e6537846c57ec`, mods in `Win64/Mods`) and
+   [experimental](https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest) `UE4SS_v3.0.1-1183-gcdbc0b66.zip`
+   (SHA-256 `e4a47e23e2eeb8379c4fc388d1b1686f01c6c5930d84a2ee4a6a9574b274e681`, mods in `Win64/ue4ss/Mods`).
+   In `UE4SS-settings.ini` set `MajorVersion = 4`, `MinorVersion = 23`.
+3. Copy `mod/CoopProbe` into the UE4SS `Mods` folder and enable it (`CoopProbe : 1` in `mods.txt`, and in `mods.json` on the experimental build).
 4. Copy `mod/Launch_second_window.bat` next to the exe.
 
 Since v17 the join is automatic: **host presses F9, guest presses F8**, the mod copies the ship levels, removes the guest's loading screen and clears the stuck black fade.
