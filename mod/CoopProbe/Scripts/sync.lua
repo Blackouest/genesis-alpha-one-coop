@@ -47,6 +47,7 @@ function M.death_tick(log, host, guest, pc)
       r[#r+1] = pcall(function() guest.Health = guest.HealthMax end)
       r[#r+1] = pcall(function() guest.CharacterMovement:SetActive(true, false) end)
       r[#r+1] = pcall(function() guest.Temp_bool_IsClosed_Variable_6 = false end)
+      log("sync: death gate reopened? IsClosed_6=" .. tostring(safe(function() return guest.Temp_bool_IsClosed_Variable_6 end, "unreadable")))
       local loc = (not soft) and safe(function() return host:K2_GetActorLocation() end)
       if loc then
         r[#r+1] = pcall(function() guest:K2_SetActorLocation({X = loc.X + 120, Y = loc.Y, Z = loc.Z + 20}, false, {}, true) end)
@@ -83,6 +84,33 @@ local function host_fix(log, why)
   end
 end
 
+-- The game's promotion camera (BP_PromotedCaptain) ends by calling GetPlayerCharacter(0).OnPromotionFinished,
+-- i.e. on the HOST's pawn. For a guest death, remove the camera before that and finish the promotion on the guest pawn.
+function M.watch_promotion(log, guest)
+  local n = 0
+  LoopAsync(200, function()
+    n = n + 1
+    if n > 100 then log("sync: no promotion camera within 20 s"); return true end
+    local done = false
+    ExecuteInGameThread(function()
+      local cams = FindAllOf("BP_PromotedCaptain_C") or {}
+      for _, cam in ipairs(cams) do
+        if valid(cam) then
+          done = true
+          local crew = safe(function() return cam.CrewCharacter end)
+          log("sync: promotion camera for the guest found, crew=" .. tostring(valid(crew) and crew:GetFName():ToString()))
+          ExecuteWithDelay(3000, function() ExecuteInGameThread(function()
+            pcall(function() cam:K2_DestroyActor() end)
+            local ok, err = pcall(function() guest:OnPromotionFinished(false) end)
+            log("sync: promotion camera removed, OnPromotionFinished on the guest pawn: " .. (ok and "ok" or tostring(err)))
+          end) end)
+        end
+      end
+    end)
+    return done
+  end)
+end
+
 function M.install_host(log)
   if M.host_hooks then return end
   local host = players()
@@ -99,6 +127,7 @@ function M.install_host(log)
         host_fix(log, why)
         M.last_evt = os.time(); M.last_why = why
         if why ~= "damage" then M.last_death = os.time() end
+        if why == "death" then M.watch_promotion(log, o) end
         if why == "promotion" then
           M.promo_done = true
           local gpc = safe(function() return o:GetController() end)
@@ -239,6 +268,7 @@ function M.on_host_message(log, body)
     local ok, err = pcall(function() hud:StartShowPromotion(a[1], a[2], a[3], FText(name or ""), tonumber(alien) or 0) end)
     if not ok then ok, err = pcall(function() hud:StartShowPromotion(a[1], a[2], a[3], name or "", tonumber(alien) or 0) end) end
     log("sync: promotion panel shown: " .. (ok and "ok" or tostring(err)))
+    ExecuteWithDelay(12000, function() ExecuteInGameThread(function() pcall(function() hud:OnPromotionEnded() end) end) end)
     return true
   end
   if body == "promoend|" then
