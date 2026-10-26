@@ -37,21 +37,24 @@ function M.death_tick(log, host, guest, pc)
     if M.dead_ticks == 1 then
       log("sync: guest died (IsDead=" .. tostring(dead) .. " health=" .. tostring(h) .. " block=" .. tostring(safe(function() return guest.BlockActionFPSPlayerInput end)) .. ")")
       local ch = package.loaded["channel"]; if ch then ch.to_guest(log, pc, "dead|") end
-    elseif M.dead_ticks >= 3 then
+    elseif M.promo_done or M.dead_ticks >= 8 then
+      local soft = M.promo_done
+      M.promo_done = false
       M.dead_ticks = 0
       local r = {}
       r[#r+1] = pcall(function() guest.IsDead = false end)
       r[#r+1] = pcall(function() guest.BlockActionFPSPlayerInput = false end)
       r[#r+1] = pcall(function() guest.Health = guest.HealthMax end)
       r[#r+1] = pcall(function() guest.CharacterMovement:SetActive(true, false) end)
-      local loc = safe(function() return host:K2_GetActorLocation() end)
+      r[#r+1] = pcall(function() guest.Temp_bool_IsClosed_Variable_6 = false end)
+      local loc = (not soft) and safe(function() return host:K2_GetActorLocation() end)
       if loc then
         r[#r+1] = pcall(function() guest:K2_SetActorLocation({X = loc.X + 120, Y = loc.Y, Z = loc.Z + 20}, false, {}, true) end)
       end
       r[#r+1] = pcall(function() pc:SetViewTargetWithBlend(guest, 0, 0, 0, false) end)
       for _, cam in ipairs(FindAllOf("BP_DeathCamera_C") or {}) do pcall(function() cam:K2_DestroyActor() end) end
       local t = {}; for _, v in ipairs(r) do t[#t+1] = tostring(v) end
-      log("sync: guest revived next to the host (" .. table.concat(t, ",") .. ")")
+      log("sync: guest revived " .. (soft and "as the promoted crew member" or "next to the host (no promotion)") .. " (" .. table.concat(t, ",") .. ")")
       local ch = package.loaded["channel"]; if ch then ch.to_guest(log, pc, "revive|") end
     end
   else
@@ -96,6 +99,12 @@ function M.install_host(log)
         host_fix(log, why)
         M.last_evt = os.time(); M.last_why = why
         if why ~= "damage" then M.last_death = os.time() end
+        if why == "promotion" then
+          M.promo_done = true
+          local gpc = safe(function() return o:GetController() end)
+          local ch = package.loaded["channel"]
+          if ch and valid(gpc) then ch.to_guest(log, gpc, "promoend|") end
+        end
         M.fixes = M.fixes or {}
         M.fixes[fname] = (M.fixes[fname] or 0) + 1
         if M.fixes[fname] <= 2 then log("sync: host undid guest feedback after " .. fname) end
@@ -127,8 +136,17 @@ function M.install_host(log)
       end)
     end)
     local ok2 = pcall(function()
-      RegisterHook(hpath .. ":StartShowPromotion", function(ctx)
+      RegisterHook(hpath .. ":StartShowPromotion", function(ctx, cid, tier, hp, name, alien)
         if not M.last_death or os.time() - M.last_death > 20 or host_busy() then return end
+        local function g(x) return safe(function() return x:get() end) end
+        local n = g(name)
+        local ns = n and (safe(function() return n:ToString() end) or tostring(n)) or ""
+        local _, guest = players()
+        local gpc = guest and safe(function() return guest:GetController() end)
+        local ch = package.loaded["channel"]
+        local msg = "promo|" .. tostring(g(cid)) .. "|" .. tostring(g(tier)) .. "|" .. tostring(g(hp)) .. "|" .. tostring(g(alien)) .. "|" .. ns:gsub("|", "/")
+        if ch and valid(gpc) then ch.to_guest(log, gpc, msg) end
+        log("sync: promotion panel sent to the guest: " .. msg)
         local h = safe(function() return ctx:get() end)
         for _, d in ipairs({ 0, 500, 1500, 3000, 5000, 8000 }) do
           ExecuteWithDelay(d + 1, function() ExecuteInGameThread(function()
@@ -211,6 +229,22 @@ function M.on_host_message(log, body)
     for v in list:gmatch("[^,]+") do table.insert(t, tonumber(v)) end
     local ok, err = pcall(function() ps.Ammunition = t end)
     log("sync: ammo (" .. #t .. " entries) -> " .. (ok and "set" or tostring(err)) .. ", local now " .. ammo_list(ps))
+    return true
+  end
+  if body:match("^promo|") then
+    local cid, tier, hp, alien, name = body:match("^promo|([^|]*)|([^|]*)|([^|]*)|([^|]*)|(.*)$")
+    local p = me(); local hud = p and safe(function() return p.PlayerHud end)
+    if not valid(hud) then log("sync: promo, no hud"); return true end
+    local a = { tonumber(cid) or 0, tonumber(tier) or 0, tonumber(hp) or 100 }
+    local ok, err = pcall(function() hud:StartShowPromotion(a[1], a[2], a[3], FText(name or ""), tonumber(alien) or 0) end)
+    if not ok then ok, err = pcall(function() hud:StartShowPromotion(a[1], a[2], a[3], name or "", tonumber(alien) or 0) end) end
+    log("sync: promotion panel shown: " .. (ok and "ok" or tostring(err)))
+    return true
+  end
+  if body == "promoend|" then
+    local p = me(); local hud = p and safe(function() return p.PlayerHud end)
+    local ok = valid(hud) and pcall(function() hud:OnPromotionEnded() end)
+    log("sync: promotion ended " .. tostring(ok))
     return true
   end
   local wv = body:match("^warn|(.+)$")
