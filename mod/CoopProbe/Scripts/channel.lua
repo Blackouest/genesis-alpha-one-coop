@@ -51,6 +51,11 @@ function M.install(log)
       if msg:sub(1, 5) == "COOP|" then
         local body = msg:sub(6)
         log("channel <- host '" .. body .. "'")
+        local sy = package.loaded["sync"]
+        if sy then
+          local handled = false
+          ExecuteInGameThread(function() handled = sy.on_host_message(log, body) end)
+        end
         local list = body:match("^weap|(.*)$")
         local w = package.loaded["weapons"]
         if list and w then ExecuteInGameThread(function() w.give_local(log, list) end) end

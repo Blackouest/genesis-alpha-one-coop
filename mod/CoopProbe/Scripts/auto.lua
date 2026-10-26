@@ -73,6 +73,8 @@ function M.start_host(log, levels)
       if t == 6 then levels.export(log) end
       fade_watch(log)
       health_watch(log)
+      local sy = package.loaded["sync"]
+      if sy and M.gave then sy.host_tick(log) end
       local init = package.loaded["initfix"]
       if init and t > 6 then init.apply(log, "host") end
       local acts = package.loaded["actions"]
