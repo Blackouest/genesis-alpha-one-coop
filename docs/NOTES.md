@@ -413,3 +413,15 @@
 - Try UE4SS experimental: owner downloaded `UE4SS_v3.0.1-1183-gcdbc0b66.zip` from https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest, SHA-256 `e4a47e23e2eeb8379c4fc388d1b1686f01c6c5930d84a2ee4a6a9574b274e681` (zip test OK; not compared with GitHub's digest from this session).
 - New layout: `dwmapi.dll` next to the exe, everything else in `<Win64>/ue4ss/` (UE4SS.dll, UE4SS-settings.ini, Mods with mods.txt **and** mods.json). Same settings changes as before (Major 4, Minor 23, consoles on, dx11). Old 3.0.1 files moved to `<Win64>/_ue4ss_3.0.1_backup/`.
 - Probe v24: file paths go through `COOP_BASE` (ue4ss/Mods/CoopProbe/ or Mods/CoopProbe/), so the same scripts run on both UE4SS layouts.
+
+## Phase 4j: UE4SS experimental unblocks the calls; GUEST HAS A WEAPON (2026-10-26 15:29, probe v24)
+### Observations
+- UE4SS `v3.0.1-1183-gcdbc0b66` loads with the same settings; only start-up warnings (ConsoleManagerSingleton found twice, unknown sizes for FStructProperty/FObjectPtrProperty/FEnumProperty, fallbacks to Default__ objects). Connection, rendering, guest movement still work.
+- Errors are now readable. `InitWeaponsFromSave` takes one parameter, an array `WeaponSaveData` (its locals: LNextWeapon, Array_Get_Item struct...). `UFunction:ForEachProperty` works now.
+- `BeginDeferredActorSpawnFromClass(g, cls, xf, 1, g)` + `FinishSpawningActor` **work**: guest got BP_WeaponPistol_C and BP_WeaponPowerShotgun_C (and the others) attached to its `Mesh2P` at `HandRight`, owner = guest pawn.
+- Owner: **the guest holds a weapon, the host sees it move, the guest can fire.** Map, lockers and in-game screens still do nothing for the guest. Host shooting the guest damages the **host**. Guest shooting the host does nothing.
+### Derived
+- Damage and aim go through player-0 helpers: the forwarded Fire runs on the host with the host's camera as "player 0", and damage on a player character is applied to player 0.
+- UE4SS experimental's RegisterHook can override return values (post callback return value), which allows an impersonation window.
+### Next (probe v25)
+- Host: post-hooks on GameplayStatics GetPlayerController / GetPlayerCharacter / GetPlayerPawn / GetPlayerCameraManager; while the host runs a forwarded guest action they return the guest's PC / pawn / camera manager (index 0 only). The act log shows how many player-0 lookups were redirected. Kill switch: `noimpersonate.txt` in the mod folder.

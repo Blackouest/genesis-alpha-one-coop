@@ -60,6 +60,8 @@ function M.start_host(log, levels)
       if init and t > 6 then init.apply(log, "host") end
       local acts = package.loaded["actions"]
       if acts and t > 6 and not acts.installed then acts.install(log) end
+      local imp = package.loaded["impersonate"]
+      if imp and t > 6 and not imp.installed then imp.install(log) end
       -- once a guest pawn exists and has been initialized, give it weapons and detach it from the host HUD
       local w = package.loaded["weapons"]
       if w and not M.gave and t > 8 then

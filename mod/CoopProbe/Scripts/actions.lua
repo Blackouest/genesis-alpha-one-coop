@@ -34,8 +34,16 @@ function M.run_for_guest(log, sender_pc, name)
   if not (pawn and safe(function() return pawn:IsValid() end, false)) then log("act: guest has no pawn"); return end
   local fn = safe(function() return pawn[name] end)
   if not fn then log("act: no function " .. name .. " on " .. pawn:GetFName():ToString()); return end
-  local ok, err = pcall(function() fn(pawn, { KeyName = FName("None") }) end)
-  log("act: ran " .. name .. " on guest pawn " .. pawn:GetFName():ToString() .. " -> " .. (ok and "ok" or tostring(err)))
+  local imp = package.loaded["impersonate"]
+  local ok, err, hits
+  if imp and imp.installed then
+    local who = { pc = sender_pc, pawn = pawn, cam = safe(function() return sender_pc.PlayerCameraManager end) }
+    ok, err, hits = imp.run(log, who, function() fn(pawn, { KeyName = FName("None") }) end)
+  else
+    ok, err = pcall(function() fn(pawn, { KeyName = FName("None") }) end)
+  end
+  log("act: ran " .. name .. " on guest pawn " .. pawn:GetFName():ToString() .. " -> " .. (ok and "ok" or tostring(err))
+    .. (hits and (" | player0 redirected: " .. (hits ~= "" and hits or "none")) or ""))
 end
 
 function M.install(log)
