@@ -425,3 +425,15 @@
 - UE4SS experimental's RegisterHook can override return values (post callback return value), which allows an impersonation window.
 ### Next (probe v25)
 - Host: post-hooks on GameplayStatics GetPlayerController / GetPlayerCharacter / GetPlayerPawn / GetPlayerCameraManager; while the host runs a forwarded guest action they return the guest's PC / pawn / camera manager (index 0 only). The act log shows how many player-0 lookups were redirected. Kill switch: `noimpersonate.txt` in the mod folder.
+
+## Phase 4k: the impersonation window catches nothing (2026-10-26 16:11, probe v25)
+### Observations
+- The four GameplayStatics post-hooks registered fine, but for every forwarded guest action (Use/HoldUse, Multitool, SelectWeapon, Fire, ActivateBuilderMode) the window redirected **zero** player-0 lookups.
+- Owner: guest fire shows no projectile on the guest's screen; on the host a projectile leaves the guest's weapon (only when the host looks at it) in the wrong direction. Lockers, screens, map still dead for the guest. PDA: the guest takes it out but its screen is empty. Guest shooting host: nobody loses health. Host shooting guest: **host** loses health. More crashes than before (three crash dumps today, stacks only show ntdll frames, unattributed).
+### Derived
+- The input-action events only start things (flags, timers, ticks, montages); the work that uses player 0 runs later, outside a synchronous window. Forwarding raw input to the host does not scale for this game.
+- UI (lockers, screens, PDA content, map) is per-machine and must run on the guest; only the world effects must run on the host.
+### Change
+- Impersonation hooks disabled by default (`noimpersonate.txt`), they did nothing and fire on very hot functions.
+### Proposed next step
+- Stop guessing from the outside: extract the player Blueprints from the pak (repak, pak v8 unencrypted index) and read their bytecode (kismet-analyzer) to see exactly how Fire, Use, lockers, PDA, damage and builder mode work, then sync each feature deliberately (guest runs UI and local visuals, host runs world effects, messages in between).
