@@ -133,7 +133,7 @@ function M.import(log)
   f:close()
   log(string.format("import: %d/%d level instances requested, %d with the host's name; listing every 1 s for 6 s", okn, n, same))
   local ticks = 0
-  LoopAsync(1000, function()
+  GT_loop(1000, function()
     ticks = ticks + 1
     ExecuteInGameThread(function() log("list t+" .. ticks .. "s"); M.export(log, true) end)
     return ticks >= 6

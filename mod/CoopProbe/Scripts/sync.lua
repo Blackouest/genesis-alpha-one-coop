@@ -85,7 +85,7 @@ local function host_fix(log, why)
     pcall(function() pcm:StopAllCameraShakes(true) end)
     -- the shake can start a few frames after the damage event: keep stopping it for 1.5 s
     for i = 1, 30 do
-      ExecuteWithDelay(50 * i, function() ExecuteInGameThread(function()
+      GT_delay(50 * i, function() ExecuteInGameThread(function()
         pcall(function() pcm:StopAllCameraShakes(true) end)
       end) end)
     end
@@ -106,7 +106,7 @@ local function host_fix(log, why)
   end
   if why == "death" or why == "promotion" then
     for _, d in ipairs({ 100, 700, 1500, 3000, 4500 }) do
-      ExecuteWithDelay(d, function() ExecuteInGameThread(function()
+      GT_delay(d, function() ExecuteInGameThread(function()
         if valid(hud) then pcall(function() hud:StartFadeIn() end) end
         if why == "promotion" and valid(hud) then pcall(function() hud:OnPromotionEnded() end) end
         if valid(pc) then pcall(function() pc:SetViewTargetWithBlend(host, 0, 0, 0, false) end) end
@@ -123,7 +123,7 @@ function M.watch_promotion(log, guest)
   if M.promo_done_at and os.time() - M.promo_done_at < 4 then return end
   M.promo_watching, M.promo_cam_handled = true, false
   local n = 0
-  LoopAsync(200, function()
+  GT_loop(200, function()
     n = n + 1
     if M.promo_cam_handled then M.promo_watching = false; return true end
     if n > 100 then
@@ -139,7 +139,7 @@ function M.watch_promotion(log, guest)
           local crew = safe(function() return cam.CrewCharacter end)
           log("sync: promotion camera for the guest found, crew=" .. tostring(valid(crew) and crew:GetFName():ToString()))
           M.promo_done_at = os.time()
-          ExecuteWithDelay(1500, function() ExecuteInGameThread(function()
+          GT_delay(1500, function() ExecuteInGameThread(function()
             pcall(function() cam:K2_DestroyActor() end)
             local ok, err = pcall(function() guest:OnPromotionFinished(false) end)
             log("sync: promotion camera removed, OnPromotionFinished on the guest pawn: " .. (ok and "ok" or tostring(err)))
@@ -155,7 +155,7 @@ function M.watch_promotion(log, guest)
             if valid(hh) then pcall(function() hh:UpdatePlayerHealth(host.Health, host.HealthMax) end) end
             -- the game puts the player on the crew member's exact spot (often inside a workstation):
             -- let the engine's teleport find the nearest free spot
-            ExecuteWithDelay(300, function() ExecuteInGameThread(function()
+            GT_delay(300, function() ExecuteInGameThread(function()
               local l = safe(function() return guest:K2_GetActorLocation() end)
               local r = safe(function() return guest:K2_GetActorRotation() end)
               if not l then return end
@@ -179,7 +179,7 @@ function M.fast_poll(log)
   if M.polling then return end
   M.polling = true
   local gs = StaticFindObject("/Script/Engine.Default__GameplayStatics")
-  LoopAsync(50, function()
+  GT_loop(50, function()
     ExecuteInGameThread(function()
       local host, guest = players()
       if not (valid(host) and valid(guest)) then return end
@@ -226,7 +226,7 @@ function M.install_host(log)
         local o = safe(function() return ctx:get() end)
         local nm = o and safe(function() return o:GetFullName() end)
         if not nm or nm ~= M.guest_full then return end
-        ExecuteWithDelay(1, function() ExecuteInGameThread(function() M.on_guest_event(log, o, fname, why) end) end)
+        GT_delay(1, function() ExecuteInGameThread(function() M.on_guest_event(log, o, fname, why) end) end)
       end)
     end)
     log("sync: hook " .. fname .. " -> " .. (ok and "ok" or tostring(err)))
@@ -262,7 +262,7 @@ function M.install_host(log)
         local v = safe(function() return w:get() end)
         local h = safe(function() return ctx:get() end)
         -- 150 ms: let fast_poll register the guest hit first
-        ExecuteWithDelay(150, function() ExecuteInGameThread(function()
+        GT_delay(150, function() ExecuteInGameThread(function()
         if not M.last_evt or os.time() - M.last_evt > 3 or host_busy() then return end
         pcall(function() h:HideTutorialWarning() end)
         local _, guest = players()
@@ -280,7 +280,7 @@ function M.install_host(log)
         local ns = n and (safe(function() return n:ToString() end) or tostring(n)) or ""
         local vc, vt, vh, va = g(cid), g(tier), g(hp), g(alien)
         local h = safe(function() return ctx:get() end)
-        ExecuteWithDelay(1, function() ExecuteInGameThread(function()
+        GT_delay(1, function() ExecuteInGameThread(function()
         if not M.last_death or os.time() - M.last_death > 20 or host_busy() then return end
         local _, guest = players()
         local gpc = guest and safe(function() return guest:GetController() end)
@@ -289,7 +289,7 @@ function M.install_host(log)
         if ch and valid(gpc) then ch.to_guest(log, gpc, msg) end
         log("sync: promotion panel sent to the guest: " .. msg)
         for _, d in ipairs({ 0, 500, 1500, 3000, 5000, 8000 }) do
-          ExecuteWithDelay(d + 1, function() ExecuteInGameThread(function()
+          GT_delay(d + 1, function() ExecuteInGameThread(function()
             pcall(function() h.PlayerHudWriteCrewStats:SetVisibility(2) end)
           end) end)
         end
@@ -351,7 +351,7 @@ function M.hit_effect(log, p, dmg)
   if valid(hudg) then pcall(function() hudg:FlickerHud() end) end
   local steps = 10
   for i = 1, steps do
-    ExecuteWithDelay(60 * i, function()
+    GT_delay(60 * i, function()
       ExecuteInGameThread(function() pcall(function() pp.BlendWeight = 1.0 - i / steps end) end)
     end)
   end
@@ -387,7 +387,7 @@ function M.on_host_message(log, body)
     local ok, err = pcall(function() hud:StartShowPromotion(a[1], a[2], a[3], FText(name or ""), tonumber(alien) or 0) end)
     if not ok then ok, err = pcall(function() hud:StartShowPromotion(a[1], a[2], a[3], name or "", tonumber(alien) or 0) end) end
     log("sync: promotion panel shown: " .. (ok and "ok" or tostring(err)))
-    ExecuteWithDelay(12000, function() ExecuteInGameThread(function() pcall(function() hud:OnPromotionEnded() end) end) end)
+    GT_delay(12000, function() ExecuteInGameThread(function() pcall(function() hud:OnPromotionEnded() end) end) end)
     return true
   end
   if body == "promoend|" then

@@ -72,7 +72,7 @@ function M.on_fire(log, name)
   if press and M.presses <= 2 then log("firediag: press | " .. snapshot(p)) end
   if not press then return end
   M.shot_seen = false
-  ExecuteWithDelay(150, function()
+  GT_delay(150, function()
     ExecuteInGameThread(function()
       if M.shot_seen then return end
       local w = safe(function() return p.CurrentWeaponInUse end)

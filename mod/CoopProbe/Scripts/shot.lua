@@ -4,7 +4,7 @@ local M = {}
 function M.take(log, role)
   -- host shoots now, client 4 s later, so the two files get different numbers
   if role == "client" then
-    LoopAsync(4000, function() ExecuteInGameThread(function() M.shoot(log, role) end); return true end)
+    GT_loop(4000, function() ExecuteInGameThread(function() M.shoot(log, role) end); return true end)
     log("shot (client): scheduled in 4 s")
     return
   end

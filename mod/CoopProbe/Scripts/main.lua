@@ -129,6 +129,31 @@ RegisterKeyBind(Key.F4, function()
   if ROLE ~= "client" then return end
   ExecuteInGameThread(function() levels.import(log) end)
 end)
+-- v53: all timers on the game thread. LoopAsync / ExecuteWithDelay run their callbacks on UE4SS's async
+-- thread while hooks and ExecuteInGameThread callbacks run on the game thread, both in this one Lua state;
+-- the host and guest crashes in the Lua VM fit that race. ExecuteInGameThreadWithDelay /
+-- LoopInGameThreadWithDelay (EngineTick) keep every callback on the game thread.
+function GT_delay(ms, fn)
+  if ExecuteInGameThreadWithDelay then return ExecuteInGameThreadWithDelay(ms, fn) end
+  return ExecuteWithDelay(ms, fn)
+end
+function GT_loop(ms, fn)  -- fn returns true to stop
+  if LoopInGameThreadWithDelay then
+    local h, done = nil, false
+    h = LoopInGameThreadWithDelay(ms, function()
+      if done then return true end
+      local ok, stop = pcall(fn)
+      if not ok or stop then
+        done = true
+        if h and CancelDelayedAction then pcall(CancelDelayedAction, h) end
+        return true
+      end
+      return false
+    end)
+    return h
+  end
+  return LoopAsync(ms, fn)
+end
 local hooks = require("hooks")
 -- v51: diagnostic hooks (RPC logs, BeginPlay/new widget/console watchers) run Lua on every spawn and
 -- RPC; they are only for investigation now. Create debughooks.txt in the mod folder to turn them on.
@@ -163,6 +188,7 @@ local weapons = require("weapons")
 local impersonate = require("impersonate")
 local sync = require("sync")
 local firediag = require("firediag")
+log("loaded v53: every timer runs on the game thread (no async-thread Lua)")
 log("loaded v52: host detects guest hits by polling (no damage/health hooks), no slow motion for the host")
 log("loaded v51: guest input hooks also defer their work to the next frame")
 log("loaded v50: host hook callbacks do their work on the next frame; one damage hook")

@@ -67,7 +67,7 @@ end
 
 function M.start_host(log, levels)
   local t = 0
-  LoopAsync(2000, function()
+  GT_loop(2000, function()
     t = t + 2
     ExecuteInGameThread(function()
       if t == 6 then levels.export(log) end
@@ -102,7 +102,7 @@ end
 
 function M.start_client(log, levels, reveal)
   local phase, wait = "connect", 0
-  LoopAsync(2000, function()
+  GT_loop(2000, function()
     ExecuteInGameThread(function()
       if phase == "connect" then
         if connected_client() then phase = "settle"; wait = 0; log("auto: connected, possessing a pawn") end

@@ -69,7 +69,7 @@ function M.install(log)
               RegisterHook(full, function(self)
                 -- v51: nothing but reading the context inside the hook; the rest on the next frame
                 local o = safe(function() return self:get() end)
-                ExecuteWithDelay(1, function() ExecuteInGameThread(function()
+                GT_delay(1, function() ExecuteInGameThread(function()
                   M.on_action(log, short, name, { get = function() return o end })
                 end) end)
               end)
