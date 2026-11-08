@@ -50,8 +50,11 @@ end
 
 function M.install(log)
   if M.installed then return end
+  -- v48: registering ~140 script hooks (pawn, controller, builder) crashed the guest mid-registration
+  -- several times. Only the host-forwarded actions are needed, and only on the guest.
+  if _G.COOP_ROLE ~= "client" then M.installed = true; log("actions: host needs no input hooks"); return end
   local n, total = 0, 0
-  for _, short in ipairs({ "Eden_PlayerCharacter_C", "BP_PlayerController_EdenAlpha_C", "BuilderCharacter_C" }) do
+  for _, short in ipairs({ "Eden_PlayerCharacter_C" }) do
     local obj = FindFirstOf(short)
     local cls = obj and safe(function() return obj:GetClass() end)
     if cls then
@@ -60,7 +63,7 @@ function M.install(log)
         cls:ForEachFunction(function(fn)
           local name = fn:GetFName():ToString()
           total = total + 1
-          if name:find("^InpActEvt_") and path then
+          if name:find("^InpActEvt_") and path and not skip(name) then
             local full = path .. ":" .. name
             local ok = pcall(function()
               RegisterHook(full, function(self) M.on_action(log, short, name, self) end)
