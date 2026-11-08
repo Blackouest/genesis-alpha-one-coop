@@ -49,6 +49,9 @@ end
 
 function M.install(log)
   if M.installed then return end
+  -- v40: no hooks any more (the game never shoots locally on the guest, v29); suspected in the
+  -- 2026-11-08 guest crashes right after the guest flow. Forced local shot only.
+  if not M.with_hooks then M.installed = true; log("firediag: forced local shot only (no hooks)"); return end
   local p = me(); if not p then return end
   local pp = classpath(p)
   local w = safe(function() return p.CurrentWeaponInUse end)

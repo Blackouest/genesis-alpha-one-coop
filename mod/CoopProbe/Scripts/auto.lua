@@ -116,19 +116,25 @@ function M.start_client(log, levels, reveal)
       elseif phase == "reveal" then
         wait = wait + 2
         if wait >= 6 then
-          reveal.run(log)
+          log("trace: reveal"); reveal.run(log)
           local init = package.loaded["initfix"]
-          if init then init.apply(log, "client") end
+          log("trace: initfix"); if init then init.apply(log, "client") end
           local acts = package.loaded["actions"]
-          if acts and not acts.installed then acts.install(log) end
+          log("trace: actions"); if acts and not acts.installed then acts.install(log) end
+          log("trace: actions done")
           phase = "done"; log("auto: guest flow done")
         end
       end
       fade_watch(log)
       if phase == "done" then
+        M.trace = (M.trace or 0) + 1
+        local tr = M.trace <= 5
+        if tr then log("trace: guest tick " .. M.trace .. " health_watch") end
         health_watch(log)
         local fd = package.loaded["firediag"]
+        if tr then log("trace: guest tick " .. M.trace .. " firediag") end
         if fd and not fd.installed then pcall(fd.install, log) end
+        if tr then log("trace: guest tick " .. M.trace .. " end") end
       end
     end)
     return false
