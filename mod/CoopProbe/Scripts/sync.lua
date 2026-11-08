@@ -75,7 +75,15 @@ local function host_fix(log, why)
   if not valid(host) then return end
   local pc = safe(function() return host:GetController() end)
   local pcm = valid(pc) and safe(function() return pc.PlayerCameraManager end)
-  if valid(pcm) then pcall(function() pcm:StopAllCameraShakes(true) end) end
+  if valid(pcm) then
+    pcall(function() pcm:StopAllCameraShakes(true) end)
+    -- the shake can start a few frames after the damage event: keep stopping it for 1.5 s
+    for i = 1, 30 do
+      ExecuteWithDelay(50 * i, function() ExecuteInGameThread(function()
+        pcall(function() pcm:StopAllCameraShakes(true) end)
+      end) end)
+    end
+  end
   local hud = safe(function() return host.PlayerHud end)
   if why == "death" or why == "promotion" then
     for _, d in ipairs({ 100, 700, 1500, 3000, 4500 }) do
@@ -220,7 +228,23 @@ function M.install_host(log)
         log("sync: guest promotion panel hidden on the host")
       end)
     end)
-    log("sync: hud hooks ShowTutorialWarning=" .. tostring(ok1) .. " StartShowPromotion=" .. tostring(ok2))
+    -- the guest pawn's damage code calls GetPlayerHud() (player 0 = host) .UpdatePlayerHealth with the
+    -- guest's health: put the host's own values back right away
+    local ok3 = pcall(function()
+      RegisterHook(hpath .. ":UpdatePlayerHealth", function(ctx, hh, hmx)
+        if M.repainting then return end
+        local v = safe(function() return hh:get() end)
+        local mine = safe(function() return host.Health end)
+        if type(v) ~= "number" or type(mine) ~= "number" or math.abs(v - mine) < 0.01 then return end
+        local h = safe(function() return ctx:get() end)
+        M.repainting = true
+        pcall(function() h:UpdatePlayerHealth(mine, host.HealthMax) end)
+        M.repainting = false
+        M.repaints = (M.repaints or 0) + 1
+        if M.repaints <= 3 then log("sync: host health bar showed " .. tostring(v) .. " (guest), repainted " .. tostring(mine)) end
+      end)
+    end)
+    log("sync: hud hooks ShowTutorialWarning=" .. tostring(ok1) .. " StartShowPromotion=" .. tostring(ok2) .. " UpdatePlayerHealth=" .. tostring(ok3))
   end
 end
 
