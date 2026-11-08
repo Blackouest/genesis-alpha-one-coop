@@ -182,9 +182,18 @@ function M.install_host(log)
   local function on(fname, why)
     local ok, err = pcall(function()
       RegisterHook(path .. ":" .. fname, function(ctx)
+        -- v50: do as little as possible inside a script hook (several host crashes came from work done
+        -- inside these callbacks): identify the guest pawn by name, then do the work on the next frame
         local o = safe(function() return ctx:get() end)
-        if not valid(o) or safe(function() return o:IsLocallyControlled() end, true) then return end
-        -- guest pawn on the host
+        local nm = o and safe(function() return o:GetFullName() end)
+        if not nm or nm ~= M.guest_full then return end
+        ExecuteWithDelay(1, function() ExecuteInGameThread(function() M.on_guest_event(log, o, fname, why) end) end)
+      end)
+    end)
+    log("sync: hook " .. fname .. " -> " .. (ok and "ok" or tostring(err)))
+  end
+  M.on_guest_event = function(log, o, fname, why)
+        if not valid(o) then return end
         safe(function() o.PlayerDamagePostProcess.bEnabled = false end)
         host_fix(log, why)
         M.last_evt = os.time(); M.last_why = why
@@ -199,13 +208,8 @@ function M.install_host(log)
         M.fixes = M.fixes or {}
         M.fixes[fname] = (M.fixes[fname] or 0) + 1
         if M.fixes[fname] <= 2 then log("sync: host undid guest feedback after " .. fname) end
-      end)
-    end)
-    log("sync: hook " .. fname .. " -> " .. (ok and "ok" or tostring(err)))
   end
   on("ReceiveDamage", "damage")
-  on("ReceivePointDamage", "damage")
-  on("ReceiveRadialDamage", "damage")
   on("PlayerDies", "death")
   on("OnPromotionFinished", "promotion")
   -- host HUD: hints and the promotion panel that the guest's pawn put there
@@ -215,36 +219,41 @@ function M.install_host(log)
   if hpath then
     local ok1 = pcall(function()
       RegisterHook(hpath .. ":ShowTutorialWarning", function(ctx, w)
-        if not M.last_evt or os.time() - M.last_evt > 3 or host_busy() then return end
         local v = safe(function() return w:get() end)
         local h = safe(function() return ctx:get() end)
+        ExecuteWithDelay(1, function() ExecuteInGameThread(function()
+        if not M.last_evt or os.time() - M.last_evt > 3 or host_busy() then return end
         pcall(function() h:HideTutorialWarning() end)
         local _, guest = players()
         local gpc = guest and safe(function() return guest:GetController() end)
         local ch = package.loaded["channel"]
         if ch and valid(gpc) and v ~= nil then ch.to_guest(log, gpc, "warn|" .. tostring(v)) end
         log("sync: guest hint " .. tostring(v) .. " moved from the host HUD to the guest")
+        end) end)
       end)
     end)
     local ok2 = pcall(function()
       RegisterHook(hpath .. ":StartShowPromotion", function(ctx, cid, tier, hp, name, alien)
-        if not M.last_death or os.time() - M.last_death > 20 or host_busy() then return end
         local function g(x) return safe(function() return x:get() end) end
         local n = g(name)
         local ns = n and (safe(function() return n:ToString() end) or tostring(n)) or ""
+        local vc, vt, vh, va = g(cid), g(tier), g(hp), g(alien)
+        local h = safe(function() return ctx:get() end)
+        ExecuteWithDelay(1, function() ExecuteInGameThread(function()
+        if not M.last_death or os.time() - M.last_death > 20 or host_busy() then return end
         local _, guest = players()
         local gpc = guest and safe(function() return guest:GetController() end)
         local ch = package.loaded["channel"]
-        local msg = "promo|" .. tostring(g(cid)) .. "|" .. tostring(g(tier)) .. "|" .. tostring(g(hp)) .. "|" .. tostring(g(alien)) .. "|" .. ns:gsub("|", "/")
+        local msg = "promo|" .. tostring(vc) .. "|" .. tostring(vt) .. "|" .. tostring(vh) .. "|" .. tostring(va) .. "|" .. ns:gsub("|", "/")
         if ch and valid(gpc) then ch.to_guest(log, gpc, msg) end
         log("sync: promotion panel sent to the guest: " .. msg)
-        local h = safe(function() return ctx:get() end)
         for _, d in ipairs({ 0, 500, 1500, 3000, 5000, 8000 }) do
           ExecuteWithDelay(d + 1, function() ExecuteInGameThread(function()
             pcall(function() h.PlayerHudWriteCrewStats:SetVisibility(2) end)
           end) end)
         end
         log("sync: guest promotion panel hidden on the host")
+        end) end)
       end)
     end)
     -- the guest pawn's damage code calls GetPlayerHud() (player 0 = host) .UpdatePlayerHealth with the
@@ -253,14 +262,16 @@ function M.install_host(log)
       RegisterHook(hpath .. ":UpdatePlayerHealth", function(ctx, hh, hmx)
         if M.repainting then return end
         local v = safe(function() return hh:get() end)
+        local h = safe(function() return ctx:get() end)
+        ExecuteWithDelay(1, function() ExecuteInGameThread(function()
         local mine = safe(function() return host.Health end)
         if type(v) ~= "number" or type(mine) ~= "number" or math.abs(v - mine) < 0.01 then return end
-        local h = safe(function() return ctx:get() end)
         M.repainting = true
         pcall(function() h:UpdatePlayerHealth(mine, host.HealthMax) end)
         M.repainting = false
         M.repaints = (M.repaints or 0) + 1
         if M.repaints <= 3 then log("sync: host health bar showed " .. tostring(v) .. " (guest), repainted " .. tostring(mine)) end
+        end) end)
       end)
     end)
     local ok4 = "off (v46 hook crashed the host)"
@@ -277,6 +288,7 @@ function M.host_tick(log)
   if not valid(pc) then return end
   local a = ammo_list(safe(function() return host.PlayerState end))
   if a ~= "" and a ~= M.last_ammo then ch.to_guest(log, pc, "ammo|" .. a); M.last_ammo = a end
+  M.guest_full = safe(function() return guest:GetFullName() end, M.guest_full)
   M.install_host(log)
   M.host_hp_seen = safe(function() return host.Health end, M.host_hp_seen)
   safe(function() guest.PlayerDamagePostProcess.bEnabled = false end)
