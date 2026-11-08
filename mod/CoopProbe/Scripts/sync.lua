@@ -87,9 +87,9 @@ local function host_fix(log, why)
   local hud = safe(function() return host.PlayerHud end)
   -- the guest's hit also calls GetPlayerHud().FlickerHud(): close the HUD's flicker gate again
   if valid(hud) then
-    pcall(function() hud.Temp_bool_Whether_the_gate_is_currently_open_or_close_Variable = false end)
-    pcall(function() hud.HudDistorionTimer = 0 end)
-    pcall(function() hud.CurvedHudMaterial:SetScalarParameterValue(FName("Flicker"), 0) end)
+    -- v43 wrote the material directly and crashed the host. Instead push the flicker timer past its
+    -- 0.2 s end: the HUD's own Tick then takes its normal "flicker finished" path.
+    pcall(function() hud.HudDistorionTimer = 1.0 end)
   end
   if why == "death" or why == "promotion" then
     for _, d in ipairs({ 100, 700, 1500, 3000, 4500 }) do
