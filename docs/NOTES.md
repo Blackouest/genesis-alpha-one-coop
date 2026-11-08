@@ -481,3 +481,7 @@
 - v37 (untested): one promotion per death (flag checked inside the game-thread callback), DoOnce reopened when the game revives the guest by itself.
 - Next: place the guest on a free spot next to the promoted crew member (not at its workstation); verify 2nd/3rd deaths; with one clone left and two players, wait for a new clone.
 - v38 (untested): after the guest's promotion, K2_TeleportTo on its current spot (+30 Z) so the engine's encroachment check moves it out of the workstation.
+
+## 2026-11-08: guest crash on join
+- Two guest crashes (UE4SS frames only) about 10 s after joining. Host's level instances were _63.._93 (the host process had built the ship three times); the guest's own counter could not match. On the guest, `levels listed: 0` after import: the instances went into a world the listing did not see, likely the old menu controller's world (FindAllOf still returned it).
+- v39: the guest picks the local controller that possesses a pawn; before importing it reads the host's first instance number, probes its own counter with a throwaway instance far below the map, loads and drops extra throwaway instances until the next number equals the host's, then imports and logs host vs guest names. If the guest is already past the host's number it stops the guest flow with a message instead of continuing.

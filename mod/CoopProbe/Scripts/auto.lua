@@ -108,7 +108,11 @@ function M.start_client(log, levels, reveal)
         if connected_client() then phase = "settle"; wait = 0; log("auto: connected, possessing a pawn") end
       elseif phase == "settle" then
         wait = wait + 2
-        if wait >= 4 then levels.import(log); phase = "reveal"; wait = 0 end
+        if wait >= 4 then
+          levels.import(log); wait = 0
+          if levels.failed then phase = "stopped"; log("auto: guest flow stopped (ship levels would not match the host)")
+          else phase = "reveal" end
+        end
       elseif phase == "reveal" then
         wait = wait + 2
         if wait >= 6 then

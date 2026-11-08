@@ -18,10 +18,53 @@ local function quat_to_rot(q)  -- same math as FQuat::Rotator
   return pitch, yaw, roll
 end
 
+-- the local controller of the current world: after a map change FindAllOf can still return the
+-- old (menu) controller, whose world is being destroyed. Prefer the one that possesses a pawn.
 local function world_of_local_pc()
+  local first
   for _, pc in ipairs(FindAllOf("PlayerController") or {}) do
-    if pc:IsValid() and safe(function() return pc:IsLocalController() end, false) then return pc, pc:GetWorld() end
+    if pc:IsValid() and safe(function() return pc:IsLocalController() end, false) then
+      local pawn = safe(function() return pc.Pawn end)
+      if pawn and safe(function() return pawn:IsValid() end, false) then return pc, pc:GetWorld() end
+      first = first or pc
+    end
   end
+  if first then return first, first:GetWorld() end
+end
+
+local function instance_number(sl)
+  local a = safe(function() return sl.WorldAsset:ToString() end, "") or ""
+  local p = safe(function() return sl.PackageNameToLoad:ToString() end, "") or ""
+  return tonumber(a:match("_LevelInstance_(%d+)") or p:match("_LevelInstance_(%d+)") or ""), a
+end
+
+local function drop(sl)
+  pcall(function() sl:SetShouldBeLoaded(false) end)
+  pcall(function() sl:SetShouldBeVisible(false) end)
+  pcall(function() sl:SetIsRequestingUnloadAndRemoval(true) end)
+end
+
+-- Level instance names come from a per-process counter (no name override in 4.23). Make the guest's
+-- next number equal the host's first one by loading and dropping throwaway instances far away.
+local function align_counter(log, pc, cdo, pkg, want)
+  local far = { X = 0, Y = 0, Z = -500000 }
+  local rot = { Pitch = 0, Yaw = 0, Roll = 0 }
+  local probe = safe(function() return cdo:LoadLevelInstance(pc, pkg, far, rot, {}) end)
+  local k, raw = probe and instance_number(probe)
+  if not k then log("align: could not read the guest's instance number (" .. tostring(raw) .. "), loading as is"); if probe then drop(probe) end; return true end
+  drop(probe)
+  if k + 1 == want then log("align: guest counter already matches the host (" .. want .. ")"); return true end
+  if k + 1 > want then
+    log("align: guest counter (" .. (k + 1) .. ") is past the host's (" .. want .. "): restart the guest's game, go to the main menu and press F8 there")
+    return false
+  end
+  local extra = want - k - 1
+  for _ = 1, extra do
+    local d = safe(function() return cdo:LoadLevelInstance(pc, pkg, far, rot, {}) end)
+    if d then drop(d) end
+  end
+  log("align: skipped " .. extra .. " instance numbers, guest now continues at " .. want)
+  return true
 end
 
 function M.export(log, nowrite)
@@ -64,7 +107,13 @@ function M.import(log)
   -- 4.23 has no OptionalLevelNameOverride (checked in the exe): load with engine-chosen names and log them
   local f = io.open(FILE, "r"); if not f then log("import: no " .. FILE .. " (press F5 on host first)"); return end
   local cdo = StaticFindObject("/Script/Engine.Default__LevelStreamingDynamic")
-  local n, okn = 0, 0
+  local first = f:read("l"); f:seek("set", 0)
+  local fpkg, finst = first and first:match("^([^|]+)|.*|([^|]*)$")
+  local want = finst and tonumber(finst:match("_LevelInstance_(%d+)$") or "")
+  if want and fpkg then
+    if not align_counter(log, pc, cdo, fpkg, want) then f:close(); M.failed = true; return end
+  end
+  local n, okn, same = 0, 0, 0
   for line in f:lines() do
     local name, x, y, z, p, yw, r, inst = line:match("^([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]*)$")
     if name then
@@ -76,11 +125,13 @@ function M.import(log)
       end)
       local good = ok and res and safe(function() return res:IsValid() end, false)
       if good then okn = okn + 1 end
-      log(string.format("  load %s as %s -> %s", name, inst, ok and (good and "ok" or "nil") or ("error: " .. tostring(res))))
+      local mine = good and select(2, instance_number(res)) or ""
+      if inst ~= "" and mine:find(inst, 1, true) then same = same + 1 end
+      log(string.format("  load %s host=%s guest=%s -> %s", name, inst, mine:match("[^/.]+$") or mine, ok and (good and "ok" or "nil") or ("error: " .. tostring(res))))
     end
   end
   f:close()
-  log(string.format("import: %d/%d level instances requested; listing every 1 s for 6 s", okn, n))
+  log(string.format("import: %d/%d level instances requested, %d with the host's name; listing every 1 s for 6 s", okn, n, same))
   local ticks = 0
   LoopAsync(1000, function()
     ticks = ticks + 1
