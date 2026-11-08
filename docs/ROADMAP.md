@@ -38,14 +38,18 @@ Follows the Co-op Anything phase map. `[x]` = verified by a test run, see NOTES.
 - [x] Guest sees its own shots and impacts (local PlayerShootsWeapon)
 - [x] Guest health bar and hit feedback (shake, red flash)
 - [x] Guest death: revive, can move and take damage again
-- [ ] Keep the guest's hints, death and promotion screens off the host and show them on the guest (v34 in test)
+- [x] Keep the guest's hints, death and promotion screens off the host and show them on the guest
 - [ ] Hold-to-fire for automatic weapons on the guest
 - [ ] Slot-2 weapon visible on the host
 - [ ] Lockers, screens, PDA and map (builder) for the guest
 - [ ] Ship colours identical on both sides
 
+### Stability
+- [x] No LoopAsync / ExecuteWithDelay (async-thread Lua crashed host and guest); timers on the game thread (v53)
+- [x] Few Blueprint script hooks; frequent events polled instead (v48-v52)
+
 ### Death rules (owner's choice)
-- [ ] Original rule for both players: a death costs a clone / crew member, and the player comes back as that crew member
+- [x] Original rule for the guest: a death costs a crew member (count goes down, confirmed in game) and the guest comes back as that crew member (v53)
 - [ ] With two players and one clone left: a player who dies waits; as soon as a new clone is created, that player can respawn
 - [ ] Game over only when no clone is left for a dead player and the other player is dead too (to confirm in play)
 
@@ -54,5 +58,7 @@ Follows the Co-op Anything phase map. `[x]` = verified by a test run, see NOTES.
 
 ## Phase 7: ship
 - [ ] Steam relay (Spacewar) or other NAT-friendly transport. The Epic build has no steam_api64.dll.
+- [ ] Send the ship layout over the message channel (needed before playing on two PCs)
+- [ ] Connection between PCs: free virtual LAN (Radmin VPN / ZeroTier / Tailscale) or port forwarding on the host's router (owner to choose)
 - [ ] Two buttons in the game's main menu: "Host a co-op game" and "Join a co-op game" (owner's request), replacing F9/F8
 - [ ] Install as an add-on into the Epic install so DLC still works
