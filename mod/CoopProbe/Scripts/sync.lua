@@ -91,13 +91,18 @@ end
 -- The game's promotion camera (BP_PromotedCaptain) ends by calling GetPlayerCharacter(0).OnPromotionFinished,
 -- i.e. on the HOST's pawn. For a guest death, remove the camera before that and finish the promotion on the guest pawn.
 function M.watch_promotion(log, guest)
+  -- one watch per death: PlayerDies can be reported several times while the guest is dying
   if M.promo_watching then return end
+  if M.promo_done_at and os.time() - M.promo_done_at < 15 then return end
   M.promo_watching, M.promo_cam_handled = true, false
   local n = 0
   LoopAsync(200, function()
     n = n + 1
     if M.promo_cam_handled then M.promo_watching = false; return true end
-    if n > 100 then log("sync: no promotion camera within 20 s"); M.promo_watching = false; return true end
+    if n > 100 then
+      if not M.promo_timeout_logged then log("sync: no promotion camera within 20 s"); M.promo_timeout_logged = true end
+      M.promo_watching = false; return true
+    end
     ExecuteInGameThread(function()
       if M.promo_cam_handled then return end
       local cams = FindAllOf("BP_PromotedCaptain_C") or {}
@@ -106,10 +111,21 @@ function M.watch_promotion(log, guest)
           M.promo_cam_handled = true
           local crew = safe(function() return cam.CrewCharacter end)
           log("sync: promotion camera for the guest found, crew=" .. tostring(valid(crew) and crew:GetFName():ToString()))
-          ExecuteWithDelay(3000, function() ExecuteInGameThread(function()
+          M.promo_done_at = os.time()
+          ExecuteWithDelay(1500, function() ExecuteInGameThread(function()
             pcall(function() cam:K2_DestroyActor() end)
             local ok, err = pcall(function() guest:OnPromotionFinished(false) end)
             log("sync: promotion camera removed, OnPromotionFinished on the guest pawn: " .. (ok and "ok" or tostring(err)))
+            -- the game's post-promotion init may point the guest pawn at player 0's HUD and re-enable its
+            -- damage post-process: undo both and repaint the host's own health
+            local host = players()
+            safe(function() guest.PlayerDamagePostProcess.bEnabled = false end)
+            local hh = valid(host) and safe(function() return host.PlayerHud end)
+            local gh = safe(function() return guest.PlayerHud end)
+            if valid(gh) and valid(hh) and gh:GetFullName() == hh:GetFullName() then
+              safe(function() guest.PlayerHud = nil end); log("sync: guest pawn was pointed at the host HUD after promotion -> cleared")
+            end
+            if valid(hh) then pcall(function() hh:UpdatePlayerHealth(host.Health, host.HealthMax) end) end
             -- the game puts the player on the crew member's exact spot (often inside a workstation):
             -- let the engine's teleport find the nearest free spot
             ExecuteWithDelay(300, function() ExecuteInGameThread(function()
