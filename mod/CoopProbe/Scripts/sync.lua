@@ -85,6 +85,12 @@ local function host_fix(log, why)
     end
   end
   local hud = safe(function() return host.PlayerHud end)
+  -- the guest's hit also calls GetPlayerHud().FlickerHud(): close the HUD's flicker gate again
+  if valid(hud) then
+    pcall(function() hud.Temp_bool_Whether_the_gate_is_currently_open_or_close_Variable = false end)
+    pcall(function() hud.HudDistorionTimer = 0 end)
+    pcall(function() hud.CurvedHudMaterial:SetScalarParameterValue(FName("Flicker"), 0) end)
+  end
   if why == "death" or why == "promotion" then
     for _, d in ipairs({ 100, 700, 1500, 3000, 4500 }) do
       ExecuteWithDelay(d, function() ExecuteInGameThread(function()
@@ -101,7 +107,7 @@ end
 function M.watch_promotion(log, guest)
   -- one watch per death: PlayerDies can be reported several times while the guest is dying
   if M.promo_watching then return end
-  if M.promo_done_at and os.time() - M.promo_done_at < 15 then return end
+  if M.promo_done_at and os.time() - M.promo_done_at < 4 then return end
   M.promo_watching, M.promo_cam_handled = true, false
   local n = 0
   LoopAsync(200, function()
@@ -289,6 +295,8 @@ function M.hit_effect(log, p, dmg)
   local info = valid(pp) and ("pp enabled=" .. tostring(safe(function() return pp.bEnabled end)) .. " unbound=" .. tostring(safe(function() return pp.bUnbound end))
     .. " weight=" .. tostring(safe(function() return pp.BlendWeight end))) or "no pp component"
   local b = valid(pp) and pcall(function() pp.bEnabled = true; pp.BlendWeight = 1.0 end)
+  local hudg = safe(function() return p.PlayerHud end)
+  if valid(hudg) then pcall(function() hudg:FlickerHud() end) end
   local steps = 10
   for i = 1, steps do
     ExecuteWithDelay(60 * i, function()
