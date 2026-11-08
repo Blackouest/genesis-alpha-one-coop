@@ -497,3 +497,5 @@
 - v44: only writes `HudDistorionTimer = 1.0` (past the 0.2 s end); the HUD's own Tick finishes the flicker.
 - v44 result: no more HUD shaking on the host, but the host crashed at the guest's death, right after the PlayerDies hook returned. v44 forced the flicker timer at every guest event, death included, which sends the HUD's Tick into its "flicker finished" path during the death sequence.
 - v45: the flicker timer is pushed only for a hit, and only while the flicker gate is open.
+- v45 result: no crash, but the host HUD flickered again (the gate read never returned true from Lua, so the cut never ran).
+- v46: hook on the host HUD's FlickerHud; cut the flicker there (timer past its end) unless the host itself just lost health, or the guest is dying.

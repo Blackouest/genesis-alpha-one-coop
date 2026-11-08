@@ -253,7 +253,26 @@ function M.install_host(log)
         if M.repaints <= 3 then log("sync: host health bar showed " .. tostring(v) .. " (guest), repainted " .. tostring(mine)) end
       end)
     end)
-    log("sync: hud hooks ShowTutorialWarning=" .. tostring(ok1) .. " StartShowPromotion=" .. tostring(ok2) .. " UpdatePlayerHealth=" .. tostring(ok3))
+    -- FlickerHud runs after the damage events we hook, so the gate is still closed there: cut the
+    -- flicker right after FlickerHud itself, for a guest hit only (never while the guest is dying)
+    local ok4 = pcall(function()
+      RegisterHook(hpath .. ":FlickerHud", function(ctx)
+        -- FlickerHud runs inside the damage event, before our post hooks: decide from the host's own
+        -- health instead. If the host just lost health, the flicker is the host's own.
+        local hhp = safe(function() return host.Health end)
+        local was = M.host_hp_seen
+        M.host_hp_seen = hhp
+        if type(hhp) == "number" and type(was) == "number" and hhp < was then return end
+        local _, guest = players()
+        if not valid(guest) then return end
+        if safe(function() return guest.IsDead end, false) or safe(function() return guest.Health end, 1) <= 0 then return end
+        local h = safe(function() return ctx:get() end)
+        pcall(function() h.HudDistorionTimer = 1.0 end)
+        M.flick = (M.flick or 0) + 1
+        if M.flick <= 3 then log("sync: host HUD flicker from a guest hit cut") end
+      end)
+    end)
+    log("sync: hud hooks ShowTutorialWarning=" .. tostring(ok1) .. " StartShowPromotion=" .. tostring(ok2) .. " UpdatePlayerHealth=" .. tostring(ok3) .. " FlickerHud=" .. tostring(ok4))
   end
 end
 
@@ -267,6 +286,7 @@ function M.host_tick(log)
   local a = ammo_list(safe(function() return host.PlayerState end))
   if a ~= "" and a ~= M.last_ammo then ch.to_guest(log, pc, "ammo|" .. a); M.last_ammo = a end
   M.install_host(log)
+  M.host_hp_seen = safe(function() return host.Health end, M.host_hp_seen)
   safe(function() guest.PlayerDamagePostProcess.bEnabled = false end)
   M.death_tick(log, host, guest, pc)
   local h, mx = safe(function() return guest.Health end), safe(function() return guest.HealthMax end)
