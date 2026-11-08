@@ -34,7 +34,13 @@ function M.death_tick(log, host, guest, pc)
   local h = safe(function() return guest.Health end, 1)
   if dead or (type(h) == "number" and h <= 0) then
     M.dead_ticks = M.dead_ticks + 1
-    if M.dead_ticks == 1 then
+    if M.dead_ticks == 1 and not dead then
+      -- the game's death sits behind a DoOnce that our Lua write does not reopen reliably: if the guest
+      -- is at 0 health but the game did not start its death, start it ourselves (PlayerDies is after the gate)
+      local ok, err = pcall(function() guest:PlayerDies() end)
+      log("sync: guest at " .. tostring(h) .. " health but not dead -> PlayerDies(): " .. (ok and "ok" or tostring(err)))
+      local ch = package.loaded["channel"]; if ch then ch.to_guest(log, pc, "dead|") end
+    elseif M.dead_ticks == 1 then
       log("sync: guest died (IsDead=" .. tostring(dead) .. " health=" .. tostring(h) .. " block=" .. tostring(safe(function() return guest.BlockActionFPSPlayerInput end)) .. ")")
       local ch = package.loaded["channel"]; if ch then ch.to_guest(log, pc, "dead|") end
     elseif M.promo_done or M.dead_ticks >= 8 then
