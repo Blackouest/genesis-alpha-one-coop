@@ -480,3 +480,4 @@
 - v36 result: the guest came back stuck inside a screen (OnPromotionFinished moves it to the crew member's spot, often at a workstation); no promotion screen after the 2nd death; host crashed on the 3rd. Log: the camera poll set its "done" flag inside ExecuteInGameThread, so the LoopAsync never stopped and called OnPromotionFinished ~320 times -> the likely crash. Also the game itself clears IsDead after the promotion, so the mod's revive never ran and the death DoOnce stayed closed.
 - v37 (untested): one promotion per death (flag checked inside the game-thread callback), DoOnce reopened when the game revives the guest by itself.
 - Next: place the guest on a free spot next to the promoted crew member (not at its workstation); verify 2nd/3rd deaths; with one clone left and two players, wait for a new clone.
+- v38 (untested): after the guest's promotion, K2_TeleportTo on its current spot (+30 Z) so the engine's encroachment check moves it out of the workstation.

@@ -110,6 +110,18 @@ function M.watch_promotion(log, guest)
             pcall(function() cam:K2_DestroyActor() end)
             local ok, err = pcall(function() guest:OnPromotionFinished(false) end)
             log("sync: promotion camera removed, OnPromotionFinished on the guest pawn: " .. (ok and "ok" or tostring(err)))
+            -- the game puts the player on the crew member's exact spot (often inside a workstation):
+            -- let the engine's teleport find the nearest free spot
+            ExecuteWithDelay(300, function() ExecuteInGameThread(function()
+              local l = safe(function() return guest:K2_GetActorLocation() end)
+              local r = safe(function() return guest:K2_GetActorRotation() end)
+              if not l then return end
+              local before = string.format("%.0f,%.0f,%.0f", l.X, l.Y, l.Z)
+              local ok2, moved = pcall(function() return guest:K2_TeleportTo({X = l.X, Y = l.Y, Z = l.Z + 30}, r) end)
+              local a = safe(function() return guest:K2_GetActorLocation() end)
+              log("sync: free spot after promotion: " .. before .. " -> " .. (a and string.format("%.0f,%.0f,%.0f", a.X, a.Y, a.Z) or "?")
+                .. " teleport=" .. tostring(ok2) .. "/" .. tostring(moved))
+            end) end)
           end) end)
         end
       end
