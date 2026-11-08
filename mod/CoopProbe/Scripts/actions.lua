@@ -66,7 +66,13 @@ function M.install(log)
           if name:find("^InpActEvt_") and path and not skip(name) then
             local full = path .. ":" .. name
             local ok = pcall(function()
-              RegisterHook(full, function(self) M.on_action(log, short, name, self) end)
+              RegisterHook(full, function(self)
+                -- v51: nothing but reading the context inside the hook; the rest on the next frame
+                local o = safe(function() return self:get() end)
+                ExecuteWithDelay(1, function() ExecuteInGameThread(function()
+                  M.on_action(log, short, name, { get = function() return o end })
+                end) end)
+              end)
             end)
             if ok then n = n + 1 end
           end

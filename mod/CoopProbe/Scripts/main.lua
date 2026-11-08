@@ -130,8 +130,11 @@ RegisterKeyBind(Key.F4, function()
   ExecuteInGameThread(function() levels.import(log) end)
 end)
 local hooks = require("hooks")
-hooks.install(log)
-hooks.install_watchers(log)
+-- v51: diagnostic hooks (RPC logs, BeginPlay/new widget/console watchers) run Lua on every spawn and
+-- RPC; they are only for investigation now. Create debughooks.txt in the mod folder to turn them on.
+local dbg = io.open(COOP_BASE .. "debughooks.txt", "r")
+if dbg then dbg:close(); hooks.install(log); hooks.install_watchers(log)
+else log("diagnostic hooks off (create debughooks.txt to enable)") end
 local reveal = require("reveal")
 RegisterKeyBind(Key.F3, function()
   if ROLE ~= "client" then return end
@@ -160,6 +163,7 @@ local weapons = require("weapons")
 local impersonate = require("impersonate")
 local sync = require("sync")
 local firediag = require("firediag")
+log("loaded v51: guest input hooks also defer their work to the next frame")
 log("loaded v50: host hook callbacks do their work on the next frame; one damage hook")
 log("loaded v49: guest death started by the mod when the game skips it")
 log("loaded v48: input hooks only on the guest pawn, movement/look skipped (fewer hooks)")
