@@ -499,3 +499,5 @@
 - v45: the flicker timer is pushed only for a hit, and only while the flicker gate is open.
 - v45 result: no crash, but the host HUD flickered again (the gate read never returned true from Lua, so the cut never ran).
 - v46: hook on the host HUD's FlickerHud; cut the flicker there (timer past its end) unless the host itself just lost health, or the guest is dying.
+- v46 result: no flicker on the host, but the host crashed on a hit after the guest's first promotion (UE4SS script-hook dispatch frames, same shape as the guest join crash with the 7 fire hooks). Script hooks on Blueprint functions that the ubergraph calls often look fragile on this build: keep their number low. Also seen: the game runs `slomo 0.15` during a death, which slows the host's world too (later: keep slow motion on the dying player's screen only).
+- v47: FlickerHud hook removed; flicker cut from the damage hook as in v44, skipped on the fatal hit and while the guest is dead.
