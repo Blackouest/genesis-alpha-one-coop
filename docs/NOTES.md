@@ -495,3 +495,5 @@
 - v43: guard down to 4 s; after a guest hit the host closes its HUD flicker gate and zeroes 'Flicker'; the guest plays FlickerHud on its own HUD.
 - v43 result: host crashed at the first hit on the guest, right after the new flicker code (UE4SS-only stack; pcall cannot catch it). Suspect: calling SetScalarParameterValue through `hud.CurvedHudMaterial`. Lesson: don't call methods on Blueprint variables whose type you have not checked.
 - v44: only writes `HudDistorionTimer = 1.0` (past the 0.2 s end); the HUD's own Tick finishes the flicker.
+- v44 result: no more HUD shaking on the host, but the host crashed at the guest's death, right after the PlayerDies hook returned. v44 forced the flicker timer at every guest event, death included, which sends the HUD's Tick into its "flicker finished" path during the death sequence.
+- v45: the flicker timer is pushed only for a hit, and only while the flicker gate is open.

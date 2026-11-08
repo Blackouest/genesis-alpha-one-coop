@@ -89,7 +89,10 @@ local function host_fix(log, why)
   if valid(hud) then
     -- v43 wrote the material directly and crashed the host. Instead push the flicker timer past its
     -- 0.2 s end: the HUD's own Tick then takes its normal "flicker finished" path.
-    pcall(function() hud.HudDistorionTimer = 1.0 end)
+    -- v45: only for a hit, and only while the flicker is running (v44 also did it at death: host crash)
+    if why == "damage" and safe(function() return hud.Temp_bool_Whether_the_gate_is_currently_open_or_close_Variable end, false) == true then
+      pcall(function() hud.HudDistorionTimer = 1.0 end)
+    end
   end
   if why == "death" or why == "promotion" then
     for _, d in ipairs({ 100, 700, 1500, 3000, 4500 }) do
