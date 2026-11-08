@@ -173,6 +173,45 @@ function M.watch_promotion(log, guest)
   end)
 end
 
+-- v52: host-side 20 Hz poll, no hooks: a drop in the guest's health = a guest hit -> undo its feedback on
+-- the host and repaint the host's own health bar; after a guest death keep the world out of slow motion.
+function M.fast_poll(log)
+  if M.polling then return end
+  M.polling = true
+  local gs = StaticFindObject("/Script/Engine.Default__GameplayStatics")
+  LoopAsync(50, function()
+    ExecuteInGameThread(function()
+      local host, guest = players()
+      if not (valid(host) and valid(guest)) then return end
+      local gh = safe(function() return guest.Health end)
+      local last = M.poll_hp
+      M.poll_hp = gh
+      if type(gh) == "number" and type(last) == "number" and gh < last then
+        M.last_evt = os.time(); M.last_why = "damage"
+        if gh > 0 then
+          host_fix(log, "damage")
+        end
+        safe(function() guest.PlayerDamagePostProcess.bEnabled = false end)
+        local hud = safe(function() return host.PlayerHud end)
+        if valid(hud) then pcall(function() hud:UpdatePlayerHealth(host.Health, host.HealthMax) end) end
+        M.hits = (M.hits or 0) + 1
+        if M.hits <= 3 then log("sync: guest hit seen by poll (" .. tostring(last) .. " -> " .. tostring(gh) .. "), host feedback undone") end
+      end
+      -- slow motion from the guest's death: the game runs "slomo 0.15" on the (shared) world
+      if M.last_death and os.time() - M.last_death < 15 and not safe(function() return host.IsDead end, false) then
+        local td = valid(gs) and safe(function() return gs:GetGlobalTimeDilation(host) end)
+        if type(td) == "number" and math.abs(td - 1) > 0.01 then
+          pcall(function() gs:SetGlobalTimeDilation(host, 1.0) end)
+          M.slomo_fix = (M.slomo_fix or 0) + 1
+          if M.slomo_fix <= 3 then log("sync: world time dilation " .. tostring(td) .. " after a guest death -> 1") end
+        end
+      end
+    end)
+    return false
+  end)
+  log("sync: host fast poll started (50 ms)")
+end
+
 function M.install_host(log)
   if M.host_hooks then return end
   local host = players()
@@ -209,7 +248,8 @@ function M.install_host(log)
         M.fixes[fname] = (M.fixes[fname] or 0) + 1
         if M.fixes[fname] <= 2 then log("sync: host undid guest feedback after " .. fname) end
   end
-  on("ReceiveDamage", "damage")
+  -- v52: no ReceiveDamage hook (hits are frequent; script hooks crashed the host intermittently even
+  -- with near-empty callbacks). Hits are detected by M.fast_poll instead.
   on("PlayerDies", "death")
   on("OnPromotionFinished", "promotion")
   -- host HUD: hints and the promotion panel that the guest's pawn put there
@@ -221,7 +261,8 @@ function M.install_host(log)
       RegisterHook(hpath .. ":ShowTutorialWarning", function(ctx, w)
         local v = safe(function() return w:get() end)
         local h = safe(function() return ctx:get() end)
-        ExecuteWithDelay(1, function() ExecuteInGameThread(function()
+        -- 150 ms: let fast_poll register the guest hit first
+        ExecuteWithDelay(150, function() ExecuteInGameThread(function()
         if not M.last_evt or os.time() - M.last_evt > 3 or host_busy() then return end
         pcall(function() h:HideTutorialWarning() end)
         local _, guest = players()
@@ -256,24 +297,7 @@ function M.install_host(log)
         end) end)
       end)
     end)
-    -- the guest pawn's damage code calls GetPlayerHud() (player 0 = host) .UpdatePlayerHealth with the
-    -- guest's health: put the host's own values back right away
-    local ok3 = pcall(function()
-      RegisterHook(hpath .. ":UpdatePlayerHealth", function(ctx, hh, hmx)
-        if M.repainting then return end
-        local v = safe(function() return hh:get() end)
-        local h = safe(function() return ctx:get() end)
-        ExecuteWithDelay(1, function() ExecuteInGameThread(function()
-        local mine = safe(function() return host.Health end)
-        if type(v) ~= "number" or type(mine) ~= "number" or math.abs(v - mine) < 0.01 then return end
-        M.repainting = true
-        pcall(function() h:UpdatePlayerHealth(mine, host.HealthMax) end)
-        M.repainting = false
-        M.repaints = (M.repaints or 0) + 1
-        if M.repaints <= 3 then log("sync: host health bar showed " .. tostring(v) .. " (guest), repainted " .. tostring(mine)) end
-        end) end)
-      end)
-    end)
+    local ok3 = "off (v52: repaint done by fast_poll)"
     local ok4 = "off (v46 hook crashed the host)"
     log("sync: hud hooks ShowTutorialWarning=" .. tostring(ok1) .. " StartShowPromotion=" .. tostring(ok2) .. " UpdatePlayerHealth=" .. tostring(ok3) .. " FlickerHud=" .. tostring(ok4))
   end
@@ -290,6 +314,7 @@ function M.host_tick(log)
   if a ~= "" and a ~= M.last_ammo then ch.to_guest(log, pc, "ammo|" .. a); M.last_ammo = a end
   M.guest_full = safe(function() return guest:GetFullName() end, M.guest_full)
   M.install_host(log)
+  M.fast_poll(log)
   M.host_hp_seen = safe(function() return host.Health end, M.host_hp_seen)
   safe(function() guest.PlayerDamagePostProcess.bEnabled = false end)
   M.death_tick(log, host, guest, pc)
